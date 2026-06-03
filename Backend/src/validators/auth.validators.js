@@ -61,5 +61,5 @@ export const resetPasswordSchema = {
 export const refreshTokenSchema = {
   body: z.object({
     refreshToken: z.string().optional(),
-  }),
+  }).optional(),
 };
