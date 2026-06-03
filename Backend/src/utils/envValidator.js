@@ -9,8 +9,7 @@ export const validateEnvironment = () => {
     "REFRESH_TOKEN_SECRET",
     "CORS_ORIGIN",
     "CASHFREE_APP_ID",
-    "CASHFREE_SECRET_KEY",
-    "GEMINI_API_KEYS"
+    "CASHFREE_SECRET_KEY"
   ];
 
   const missing = [];
@@ -20,6 +19,12 @@ export const validateEnvironment = () => {
       missing.push(key);
     }
   });
+
+  // Check for at least one Gemini API key: either the list variable or key 1
+  const geminiKeys = process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY_1;
+  if (!geminiKeys || geminiKeys.trim() === "") {
+    missing.push("GEMINI_API_KEYS (or GEMINI_API_KEY_1)");
+  }
 
   if (missing.length > 0) {
     console.error("\n========================================================");

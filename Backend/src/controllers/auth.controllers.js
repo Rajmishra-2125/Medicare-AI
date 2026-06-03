@@ -256,7 +256,7 @@ const loginUser = asyncHandler(async (req, res) => {
     .json(
       new ApiResponse(
         200,
-        { user: loggedInUser, accessToken, refreshToken },
+        { user: loggedInUser, accessToken },
         "User loggedIn successfully"
       )
     );
@@ -279,8 +279,6 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
     const user = await User.findById(decodedToken?._id);
 
-    console.log("User:", user);
-
     if (!user) {
       throw new ApiError(401, "Invalid refresh token");
     }
@@ -295,8 +293,6 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       user._id
     );
 
-    console.log("newRefreshToken", refreshToken);
-
     return res
       .status(200)
       .cookie("accessToken", accessToken, options)
@@ -304,7 +300,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       .json(
         new ApiResponse(
           200,
-          { accessToken, refreshToken },
+          { accessToken },
           "access token is refreshed"
         )
       );
@@ -398,7 +394,7 @@ const googleAuthLogin = asyncHandler(async (req, res) => {
       .json(
         new ApiResponse(
           200,
-          { user: loggedInUser, accessToken, refreshToken },
+          { user: loggedInUser, accessToken },
           "Google OAuth login successful"
         )
       );
@@ -428,7 +424,6 @@ const logoutUser = asyncHandler(async (req, res) => {
 // Verify Email OTP and Create User
 const verifyEmailOTP = asyncHandler(async (req, res) => {
   const { fullname, email, gender, password, phone, DOB, otp } = req.body;
-  console.log("verifyEmailOTP incoming body:", req.body);
 
   if (!email || !otp) {
     console.log("verifyEmailOTP failed: Missing email or otp");
@@ -451,7 +446,6 @@ const verifyEmailOTP = asyncHandler(async (req, res) => {
     );
   }
 
-  console.log(`Comparing incoming OTP '${otp}' with DB OTP '${otpRecord.otp}'`);
   if (otpRecord.otp !== otp) {
     console.log("verifyEmailOTP failed: OTP mismatch");
     throw new ApiError(400, "Invalid Incorrect OTP");
@@ -464,15 +458,6 @@ const verifyEmailOTP = asyncHandler(async (req, res) => {
 
   try {
     const escapedName = escapeHTML(fullname);
-    console.log("Creating user via service with data:", {
-      fullname: escapedName,
-      email: normalizedEmail,
-      gender,
-      role: "PATIENT",
-      phone,
-      dateOfBirth: DOB,
-      isEmailVerified: true,
-    });
     
     user = await createUserAccount({
       fullname: escapedName,
@@ -484,7 +469,6 @@ const verifyEmailOTP = asyncHandler(async (req, res) => {
       isEmailVerified: true,
     });
     
-    console.log("User created successfully:", user._id);
 
     // Send Welcome Email asynchronously
     try {
@@ -521,7 +505,7 @@ const verifyEmailOTP = asyncHandler(async (req, res) => {
     .json(
       new ApiResponse(
         200,
-        { user: loggedInUser, accessToken, refreshToken },
+        { user: loggedInUser, accessToken },
         "Email verified and login successful"
       )
     );

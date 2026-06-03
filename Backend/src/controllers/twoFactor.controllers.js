@@ -193,7 +193,7 @@ export const login2FA = asyncHandler(async (req, res) => {
       .json(
         new ApiResponse(
           200,
-          { user: loggedInUser, accessToken, refreshToken },
+          { user: loggedInUser, accessToken },
           "Two-Factor Authentication successful. Login completed."
         )
       );
