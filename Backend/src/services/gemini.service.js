@@ -17,12 +17,20 @@ class GeminiService {
   }
 
   initializeKeys() {
-    // Load explicitly numbered keys from .env
-    const possibleKeys = [
+    // 1. Load keys from comma-separated GEMINI_API_KEYS if present
+    let possibleKeys = [];
+    if (process.env.GEMINI_API_KEYS) {
+      possibleKeys = process.env.GEMINI_API_KEYS.split(",").map((k) => k.trim());
+    }
+
+    // 2. Load explicitly numbered keys from .env and combine
+    const numberedKeys = [
       process.env.GEMINI_API_KEY_1,
       process.env.GEMINI_API_KEY_2,
       process.env.GEMINI_API_KEY_3,
     ];
+
+    possibleKeys = [...possibleKeys, ...numberedKeys];
 
     // Filter out undefined or empty values, or default placeholder strings
     this.keys = possibleKeys.filter(

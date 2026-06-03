@@ -21,4 +21,7 @@ const chatSessionSchema = new Schema(
   }
 );
 
+// TTL Index: Auto-delete chat sessions after 30 days of inactivity (updatedAt + 30 days)
+chatSessionSchema.index({ updatedAt: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 });
+
 export const ChatSession = mongoose.model("ChatSession", chatSessionSchema);

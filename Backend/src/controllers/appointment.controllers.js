@@ -107,6 +107,20 @@ const getAppointmentDetailsBySlotId = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Appointment not found for this Slot");
   }
 
+  // Enforce patient/doctor/admin ownership before returning data (IDOR fix)
+  if (req.user.role === "PATIENT") {
+    const patientId = appointment.patientId._id ? appointment.patientId._id.toString() : appointment.patientId.toString();
+    if (patientId !== req.user._id.toString()) {
+      throw new ApiError(403, "You are not authorized to view this appointment details");
+    }
+  } else if (req.user.role === "DOCTOR") {
+    const doctorProfile = await Doctor.findOne({ doctorId: req.user._id });
+    const appointmentDoctorId = appointment.doctorId._id ? appointment.doctorId._id.toString() : appointment.doctorId.toString();
+    if (!doctorProfile || doctorProfile._id.toString() !== appointmentDoctorId) {
+      throw new ApiError(403, "You are not authorized to view this appointment details");
+    }
+  }
+
   return res
     .status(200)
     .json(new ApiResponse(200, appointment, "Appointment details fetched"));
@@ -232,6 +246,13 @@ const applyForBooking = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Invalid date format. Enter: YYYY-MM-DD");
   }
 
+  // Prevent booking in the past
+  const today = new Date();
+  const todayUTC = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+  if (bookingDate < todayUTC) {
+    throw new ApiError(400, "Cannot book appointments in the past");
+  }
+
   console.log(
     `[DEBUG] applyForBooking: Looking for doctor '${username}' (case-insensitive)`
   );
@@ -241,6 +262,11 @@ const applyForBooking = asyncHandler(async (req, res) => {
   console.log(`[DEBUG] applyForBooking: Found? ${!!doctor}`);
   if (!doctor) {
     throw new ApiError(404, "Doctor doesn't exists");
+  }
+
+  // Verify doctor is verified, visible, and accepting new patients
+  if (!doctor.isVerified || !doctor.isVisible || !doctor.isAcceptingNewPatients) {
+    throw new ApiError(400, "This doctor is currently not accepting appointments or is not verified/visible");
   }
 
   const doctorId = doctor._id; // Correct: Use Doctor Document ID
@@ -422,7 +448,7 @@ const cancelBooking = asyncHandler(async (req, res) => {
     slotNumber: slotNumber,
     patientId: patientId,
     doctorId: doctorId,
-    date: date, // Appointment stores raw string or Date? Schema says Date.
+    date: bookingDate, // Appointment stores raw string or Date? Schema says Date.
     status: "CONFIRMED",
   });
 
@@ -525,6 +551,10 @@ const updateAppointmentStatus = asyncHandler(async (req, res) => {
     }
   }
 
+  if (status === "CONFIRMED" && req.user.role !== "ADMIN") {
+    throw new ApiError(403, "Only automated payment verification or admin can confirm appointments");
+  }
+
   // 1. STATE MACHINE VALIDATION
   const terminalStates = ["CANCELLED", "COMPLETED", "NO_SHOW"];
   if (terminalStates.includes(appointment.status)) {
@@ -600,10 +630,8 @@ const updateAppointmentStatus = asyncHandler(async (req, res) => {
   }
 
   if (status === "COMPLETED") {
-    // Auto-update payment to PAID if not already
-    if (appointment.paymentStatus === "PENDING") {
-      appointment.paymentStatus = "PAID";
-      appointment.paidAt = new Date();
+    if (appointment.paymentStatus !== "PAID") {
+      throw new ApiError(400, "Cannot complete appointment. Payment has not been verified/paid.");
     }
     appointment.isCompleted = true; // If schema supports
   }

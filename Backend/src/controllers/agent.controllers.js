@@ -267,24 +267,25 @@ const bookAppointment = async (
       Date.UTC(parseInt(y), parseInt(m) - 1, parseInt(d) + 1)
     );
 
-    // Verify slot
-    const slot = await Slot.findOne({
-      doctorId: doctor._id,
-      date: { $gte: targetDate, $lt: nextDay },
-      startTime: { $regex: startTimeMatch, $options: "i" },
-    });
+    // Verify and book slot atomically
+    const slot = await Slot.findOneAndUpdate(
+      {
+        doctorId: doctor._id,
+        date: { $gte: targetDate, $lt: nextDay },
+        startTime: { $regex: startTimeMatch, $options: "i" },
+        status: "AVAILABLE",
+      },
+      {
+        status: "BOOKED",
+        bookedBy: patientId,
+      },
+      { new: true }
+    );
 
     if (!slot) {
       return {
         success: false,
-        message: `The system could not find a slot on ${date} at ${time}. Are you sure it was offered in get_available_slots?`,
-      };
-    }
-    if (slot.status !== "AVAILABLE") {
-      return {
-        success: false,
-        message:
-          "This slot is no longer available. It may have been booked just now.",
+        message: "The requested slot is either not available or has already been booked.",
       };
     }
 
@@ -305,10 +306,6 @@ const bookAppointment = async (
       consultationFee: doctor.consultationFee,
       meetingType: meetingType || "IN_PERSON",
     });
-
-    // Mark slot as booked
-    slot.status = "BOOKED";
-    await slot.save();
 
     // Invalidate Cache
     if (redisClient.isOpen) {
@@ -425,6 +422,12 @@ export const handleAgentChat = asyncHandler(async (req, res) => {
   const { message } = req.body;
   const patientId = req.user._id;
 
+  // Sanitize message: strip HTML tags
+  const sanitizedMessage = message ? message.replace(/<[^>]*>/g, "").trim() : "";
+  if (!sanitizedMessage) {
+    throw new ApiError(400, "Message content is required");
+  }
+
   if (geminiService.keys.length === 0) {
     throw new ApiError(
       500,
@@ -490,7 +493,7 @@ FALLBACKS:
           history: chatSessionObj.history || [],
         });
 
-        let currentInput = message;
+        let currentInput = sanitizedMessage;
         let round = 0;
         const maxRounds = 5;
 
@@ -550,8 +553,20 @@ FALLBACKS:
           }
         }
 
-        // Save updated chat history securely back to database
-        chatSessionObj.history = await chat.getHistory();
+        // Securely sanitize, filter, and cap chat history to last 20 messages, excluding function call/response parts
+        const rawHistory = await chat.getHistory();
+        const cleanedHistory = rawHistory
+          .filter((msg) => {
+            if (msg.role !== "user" && msg.role !== "model") return false;
+            if (!msg.parts || msg.parts.length === 0) return false;
+            const hasFunctionParts = msg.parts.some(
+              (part) => part.functionCall || part.functionResponse
+            );
+            return !hasFunctionParts;
+          })
+          .slice(-20); // Keep last 20 messages (10 turns)
+
+        chatSessionObj.history = cleanedHistory;
         await chatSessionObj.save();
       }
     );

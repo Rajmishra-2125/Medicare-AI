@@ -15,14 +15,15 @@ const addReview = asyncHandler(async (req, res) => {
   }
 
   // 1. Verify Appointment (Matches to patient)
-  // Relaxed Rule: Allow reviews for Booked/Cancelled/Completed appointments as requested.
+  // Strict Rule: Reviews only allowed on completed appointments
   const appointment = await Appointment.findOne({
     _id: appointmentId,
     patientId: patientId,
+    status: "COMPLETED",
   });
 
   if (!appointment) {
-    throw new ApiError(400, "Appointment not found or does not belong to you.");
+    throw new ApiError(400, "Completed appointment not found or does not belong to you.");
   }
 
   // Check if appointment is already reviewed

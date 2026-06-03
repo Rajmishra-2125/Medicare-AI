@@ -2,6 +2,8 @@ import { Server } from "socket.io";
 import http from "http";
 import express from "express";
 import jwt from "jsonwebtoken";
+import { Appointment } from "./models/appointment.models.js";
+import { Doctor } from "./models/doctor.models.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -28,6 +30,17 @@ setInterval(() => {
 
 export const getReceiverSocketId = (receiverId) => {
   return userSocketMap[receiverId];
+};
+
+const broadcastOnlineUsers = () => {
+  const onlineUserIds = Object.keys(userSocketMap);
+  io.sockets.sockets.forEach((s) => {
+    if (s.user?.role === "ADMIN" || s.user?.role === "DOCTOR") {
+      s.emit("getOnlineUsers", onlineUserIds);
+    } else {
+      s.emit("getOnlineUsers", []);
+    }
+  });
 };
 
 // 1. JWT Authentication Middleware for Socket.io Connections
@@ -67,7 +80,7 @@ io.on("connection", (socket) => {
     });
   }
 
-  io.emit("getOnlineUsers", Object.keys(userSocketMap));
+  broadcastOnlineUsers();
 
   // 2. Rate Limiting Middleware for incoming client emissions
   socket.use((packet, next) => {
@@ -84,11 +97,33 @@ io.on("connection", (socket) => {
   });
 
   // --- WebRTC Tele-Consultation Signaling System ---
-  socket.on("webrtc:join-room", ({ roomId, userId }) => {
-    socket.join(roomId);
-    console.log(`📹 User ${userId} (${socket.id}) joined video room: ${roomId}`);
-    // Notify other users in the room
-    socket.to(roomId).emit("webrtc:user-joined", { userId, socketId: socket.id });
+  socket.on("webrtc:join-room", async ({ roomId, userId }) => {
+    try {
+      const appointment = await Appointment.findById(roomId);
+      if (!appointment) {
+        socket.emit("webrtc:error", { message: "Invalid appointment room ID" });
+        return;
+      }
+
+      const currentUserId = socket.user?._id?.toString();
+      const isPatient = appointment.patientId.toString() === currentUserId;
+
+      const doctorDoc = await Doctor.findById(appointment.doctorId);
+      const isDoctor = doctorDoc && doctorDoc.doctorId.toString() === currentUserId;
+
+      if (!isPatient && !isDoctor) {
+        socket.emit("webrtc:error", { message: "Unauthorized to join this consultation room" });
+        return;
+      }
+
+      socket.join(roomId);
+      console.log(`📹 User ${userId} (${socket.id}) joined video room: ${roomId}`);
+      // Notify other users in the room
+      socket.to(roomId).emit("webrtc:user-joined", { userId, socketId: socket.id });
+    } catch (err) {
+      console.error("WebRTC Join Room Error:", err);
+      socket.emit("webrtc:error", { message: "Server error during room joining" });
+    }
   });
 
   socket.on("webrtc:offer", ({ roomId, offer }) => {
@@ -116,7 +151,7 @@ io.on("connection", (socket) => {
     if (userId) {
       delete userSocketMap[userId];
     }
-    io.emit("getOnlineUsers", Object.keys(userSocketMap));
+    broadcastOnlineUsers();
   });
 });
 
