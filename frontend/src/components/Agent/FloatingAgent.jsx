@@ -60,7 +60,7 @@ const FloatingAgent = () => {
     dispatch(setLoading(true));
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'https://medicare-healthcare-app.onrender.com/api/v1';
+      const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
       const token = getAccessToken();
       const headers = {
         "Content-Type": "application/json",

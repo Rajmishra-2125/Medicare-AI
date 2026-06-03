@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 // 1. Environment variables
 // Automatically falls back to localhost if env variable is surprisingly missing
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://medicare-healthcare-app.onrender.com/api/v1',
+  baseURL: import.meta.env.VITE_API_URL || '/api/v1',
   // 4. Secure cookies - instructs Axios to securely attach HttpOnly cookies to every outgoing request
   withCredentials: true,
 });
