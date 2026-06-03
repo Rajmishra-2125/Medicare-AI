@@ -5,7 +5,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 
 export const verifyJWT = asyncHandler(async (req, res, next) => {
   let token =
-    req.cookies.accessToken ||
+    req.cookies?.accessToken ||
     req.header("Authorization")?.replace(/^Bearer\s+/i, "");
 
   if (token) {
@@ -26,7 +26,7 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
   }
 
   // Silent Auto-Refresh using HttpOnly secure refreshToken cookie
-  const incomingRefreshToken = req.cookies.refreshToken;
+  const incomingRefreshToken = req.cookies?.refreshToken;
   if (incomingRefreshToken) {
     try {
       const decodedToken = jwt.verify(
