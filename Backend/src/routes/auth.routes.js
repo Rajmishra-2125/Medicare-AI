@@ -17,6 +17,17 @@ import {
   disable2FA,
   login2FA,
 } from "../controllers/twoFactor.controllers.js";
+import { validateSchema } from "../middlewares/validate.middleware.js";
+import {
+  registerSchema,
+  loginSchema,
+  login2FASchema,
+  verifyOTPSchema,
+  googleAuthSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  refreshTokenSchema,
+} from "../validators/auth.validators.js";
 
 const router = Router();
 
@@ -108,21 +119,24 @@ router.route("/register").post(
       maxcount: 1,
     },
   ]),
+  validateSchema(registerSchema),
   registerUser
 );
 
 // Login user
-router.route("/login").post(loginUser);
-router.route("/2fa/login").post(login2FA);
+router.route("/login").post(validateSchema(loginSchema), loginUser);
+router.route("/2fa/login").post(validateSchema(login2FASchema), login2FA);
 
 // Google OAuth Login
-router.route("/google").post(googleAuthLogin);
+router.route("/google").post(validateSchema(googleAuthSchema), googleAuthLogin);
 
 // Verify OTP
-router.route("/verify-otp").post(upload.none(), verifyEmailOTP);
+router.route("/verify-otp").post(upload.none(), validateSchema(verifyOTPSchema), verifyEmailOTP);
 
 // Refresh access token
-router.route("/refresh-token").get(refreshAccessToken).post(refreshAccessToken);
+router.route("/refresh-token")
+  .get(refreshAccessToken)
+  .post(validateSchema(refreshTokenSchema), refreshAccessToken);
 
 // <=> Secured routes <=>
 
@@ -138,8 +152,8 @@ router.route("/2fa/verify").post(verifyJWT, verify2FA);
 router.route("/2fa/disable").post(verifyJWT, disable2FA);
 
 // Password Reset
-router.route("/forgot-password").post(forgotPassword);
-router.route("/reset-password/:token").post(resetPassword);
+router.route("/forgot-password").post(validateSchema(forgotPasswordSchema), forgotPassword);
+router.route("/reset-password/:token").post(validateSchema(resetPasswordSchema), resetPassword);
 
 // Exporting all routes
 export default router;

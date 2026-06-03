@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { User } from "../models/user.models.js";
+import { Session } from "../models/session.models.js";
 import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
@@ -36,12 +37,25 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
 
       const user = await User.findById(decodedToken?._id).select("+refreshToken");
 
-      if (user && incomingRefreshToken === user.refreshToken) {
+      // Verify session in database
+      const activeSession = await Session.findOne({
+        refreshToken: incomingRefreshToken,
+        isActive: true,
+        expiresAt: { $gt: new Date() }
+      });
+
+      if (user && activeSession) {
         // Generate fresh new tokens
         const accessTokenObj = user.generateAccessToken();
         const refreshTokenObj = user.generateRefreshToken();
 
-        // Save new refresh token to DB
+        // Rotate the session in the database
+        activeSession.refreshToken = refreshTokenObj;
+        activeSession.expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        activeSession.lastUsedAt = new Date();
+        await activeSession.save();
+
+        // Legacy compatibility: save on User model
         user.refreshToken = refreshTokenObj;
         await user.save({ validateBeforeSave: false });
 

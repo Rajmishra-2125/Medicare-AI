@@ -180,7 +180,7 @@ export const login2FA = asyncHandler(async (req, res) => {
     }
 
     // Auth is successful, generate real login tokens
-    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id, req);
 
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
 

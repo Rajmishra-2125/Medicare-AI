@@ -16,6 +16,7 @@ import { escapeHTML } from "../utils/sanitize.js";
 import { createUserAccount } from "../services/userService.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import { OTP } from "../models/otp.models.js";
+import { Session } from "../models/session.models.js";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -31,7 +32,7 @@ const getCookieOptions = (req) => {
 };
 
 // Generate Access and Refresh Token
-export const generateAccessAndRefreshToken = async (userId) => {
+export const generateAccessAndRefreshToken = async (userId, req = null) => {
   try {
     const user = await User.findById(userId);
 
@@ -42,7 +43,28 @@ export const generateAccessAndRefreshToken = async (userId) => {
     const accessToken = user.generateAccessToken();
     const refreshToken = user.generateRefreshToken();
 
-    await User.findByIdAndUpdate(user._id, { refreshToken }, { new: true });
+    // Legacy support: save on User model
+    user.refreshToken = refreshToken;
+    await user.save({ validateBeforeSave: false });
+
+    // Store in Session model if req is provided
+    if (req) {
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+      await Session.create({
+        userId: user._id,
+        refreshToken,
+        deviceInfo: {
+          userAgent: req.headers["user-agent"] || "",
+          ipAddress: req.ip || req.socket?.remoteAddress || "",
+          device: "",
+          os: "",
+          browser: "",
+        },
+        expiresAt,
+        isActive: true,
+      });
+    }
+
     return { accessToken, refreshToken };
   } catch (error) {
     throw new ApiError(
@@ -240,7 +262,8 @@ const loginUser = asyncHandler(async (req, res) => {
   }
 
   const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
-    user._id
+    user._id,
+    req
   );
 
   const loggedInUser = await User.findById(user._id).select(
@@ -283,15 +306,26 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       throw new ApiError(401, "Invalid refresh token");
     }
 
-    if (incomingRefreshToken !== user?.refreshToken) {
-      throw new ApiError(401, "Refresh token is invalid or used");
+    // Verify session in database
+    const activeSession = await Session.findOne({
+      refreshToken: incomingRefreshToken,
+      isActive: true,
+      expiresAt: { $gt: new Date() }
+    });
+
+    if (!activeSession) {
+      throw new ApiError(401, "Session expired or invalid");
     }
 
     const options = getCookieOptions(req);
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
-      user._id
+      user._id,
+      req
     );
+
+    // Deactivate/delete the old session since we rotated it
+    await Session.deleteOne({ _id: activeSession._id });
 
     return res
       .status(200)
@@ -378,7 +412,8 @@ const googleAuthLogin = asyncHandler(async (req, res) => {
     }
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
-      user._id
+      user._id,
+      req
     );
 
     const loggedInUser = await User.findById(user._id).select(
@@ -406,6 +441,13 @@ const googleAuthLogin = asyncHandler(async (req, res) => {
 
 // Logout user
 const logoutUser = asyncHandler(async (req, res) => {
+  const incomingRefreshToken =
+    req.cookies?.refreshToken || req.body?.refreshToken;
+
+  if (incomingRefreshToken) {
+    await Session.deleteOne({ refreshToken: incomingRefreshToken });
+  }
+
   await User.findByIdAndUpdate(req.user._id, {
     $set: {
       refreshToken: undefined,
@@ -490,7 +532,8 @@ const verifyEmailOTP = asyncHandler(async (req, res) => {
   }
 
   const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
-    user._id
+    user._id,
+    req
   );
   const loggedInUser = await User.findById(user._id).select(
     "-password -refreshToken"
