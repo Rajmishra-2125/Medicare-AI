@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { Outlet, Navigate, useLocation } from "react-router-dom";
 import Layout from "./Layout";
@@ -23,18 +23,24 @@ function App() {
   const { user } = useSelector((state) => state.auth);
   const location = useLocation();
   const dispatch = useDispatch();
+  const [isBootstrapping, setIsBootstrapping] = useState(true);
 
   useEffect(() => {
-    // 1. Silent token verification to ensure cookie is still valid
-    if (user) {
-      dispatch(checkAuthStatus());
-    }
-
-    // 2. Only fetch notifications for fully authenticated users (not in OTP phase)
-    if (user && !user.isOTP) {
-      dispatch(fetchNotifications());
-    }
-  }, [dispatch]); // Removed user from dependency to avoid infinite loop / re-fetching
+    const bootstrap = async () => {
+      try {
+        // Silently verify active session on mount
+        const currentUser = await dispatch(checkAuthStatus()).unwrap();
+        if (currentUser && !currentUser.isOTP) {
+          dispatch(fetchNotifications());
+        }
+      } catch (err) {
+        console.log("No active session / bootstrap error");
+      } finally {
+        setIsBootstrapping(false);
+      }
+    };
+    bootstrap();
+  }, [dispatch]);
 
   useEffect(() => {
     // 3. Cross-tab logout synchronization
@@ -46,6 +52,10 @@ function App() {
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
+
+  if (isBootstrapping) {
+    return <PageLoader />;
+  }
 
   if (user && !user.isOTP) {
     // Restrict Admin and Doctor strictly to their own routes

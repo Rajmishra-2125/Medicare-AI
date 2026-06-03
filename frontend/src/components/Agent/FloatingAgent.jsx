@@ -11,11 +11,24 @@ import {
   setLoading 
 } from "../../features/agent/agentSlice";
 import ReactMarkdown from "react-markdown";
+import { getAccessToken } from "../../services/api";
+
+const sanitizeMarkdown = (text) => {
+  if (!text) return "";
+  return text
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, "")
+    .replace(/<[\s\S]*?on\w+\s*=\s*['"][\s\S]*?['"][^>]*>/gi, "")
+    .replace(/<a\s+[^>]*href\s*=\s*['"]javascript:[\s\S]*?['"][^>]*>/gi, "")
+    .replace(/<\/?(html|body|head|meta|link|object|embed|form|input|button|textarea|select|option)[^>]*>/gi, "");
+};
 
 const FloatingAgent = () => {
   const dispatch = useDispatch();
   const { chatHistory, isLoading, isOpen } = useSelector((state) => state.agent);
   const [input, setInput] = useState("");
+  const [showConfirmClear, setShowConfirmClear] = useState(false);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -48,7 +61,7 @@ const FloatingAgent = () => {
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'https://medicare-healthcare-app.onrender.com/api/v1';
-      const token = localStorage.getItem("accessToken");
+      const token = getAccessToken();
       const headers = {
         "Content-Type": "application/json",
       };
@@ -139,17 +152,34 @@ const FloatingAgent = () => {
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <button 
-            onClick={() => {
-              if (window.confirm("Are you sure you want to clear your chat history?")) {
-                dispatch(clearPersistedChat());
-              }
-            }}
-            title="Clear Chat History"
-            className="p-2 hover:bg-white/20 rounded-full transition-colors mr-1 cursor-pointer"
-          >
-            <Trash2 className="w-4 h-4 text-white" />
-          </button>
+          {showConfirmClear ? (
+            <div className="flex items-center gap-1 bg-red-700/40 rounded-lg p-1 animate-in fade-in zoom-in-95 duration-200">
+              <span className="text-[10px] text-red-200 font-semibold px-1">Clear history?</span>
+              <button
+                onClick={() => {
+                  dispatch(clearPersistedChat());
+                  setShowConfirmClear(false);
+                }}
+                className="px-2 py-0.5 bg-red-600 hover:bg-red-700 text-white rounded text-[10px] cursor-pointer"
+              >
+                Yes
+              </button>
+              <button
+                onClick={() => setShowConfirmClear(false)}
+                className="px-2 py-0.5 bg-white/20 hover:bg-white/30 text-white rounded text-[10px] cursor-pointer"
+              >
+                No
+              </button>
+            </div>
+          ) : (
+            <button 
+              onClick={() => setShowConfirmClear(true)}
+              title="Clear Chat History"
+              className="p-2 hover:bg-white/20 rounded-full transition-colors mr-1 cursor-pointer"
+            >
+              <Trash2 className="w-4 h-4 text-white" />
+            </button>
+          )}
           <button 
             onClick={() => dispatch(toggleAgentChat())}
             className="p-2 hover:bg-white/20 rounded-full transition-colors cursor-pointer"
@@ -157,6 +187,12 @@ const FloatingAgent = () => {
             <X className="w-5 h-5" />
           </button>
         </div>
+      </div>
+
+      {/* Medical Disclaimer Banner */}
+      <div className="bg-amber-50 dark:bg-amber-950/20 border-b border-amber-100 dark:border-amber-900/50 p-2.5 text-[11px] text-amber-800 dark:text-amber-300 leading-normal flex items-start gap-2 shrink-0">
+        <span className="font-bold shrink-0 mt-0.5">⚠️ Disclaimer:</span>
+        <span>MediBot is an AI assistant, not a doctor. For life-threatening emergencies, contact local emergency services immediately.</span>
       </div>
 
       {/* Messages Window */}
@@ -181,7 +217,7 @@ const FloatingAgent = () => {
             >
               <div className="prose prose-sm dark:prose-invert prose-p:leading-relaxed max-w-none">
                 <ReactMarkdown>
-                  {msg.text}
+                  {sanitizeMarkdown(msg.text)}
                 </ReactMarkdown>
               </div>
             </div>

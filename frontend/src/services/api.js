@@ -12,6 +12,13 @@ const api = axios.create({
 let isRefreshing = false;
 let failedQueue = [];
 
+let inMemoryAccessToken = '';
+
+export const getAccessToken = () => inMemoryAccessToken;
+export const setAccessToken = (token) => {
+  inMemoryAccessToken = token;
+};
+
 const processQueue = (error, token = null) => {
   failedQueue.forEach(prom => {
     if (error) {
@@ -26,17 +33,12 @@ const processQueue = (error, token = null) => {
 // 3. Logout helper function
 // Keeps session clearing logic in one clean, exported module
 export const forceLogout = () => {
+  setAccessToken('');
   // Return early if the user session is already cleared to avoid loops
-  if (
-    !localStorage.getItem("user") &&
-    !localStorage.getItem("accessToken") &&
-    !localStorage.getItem("refreshToken")
-  ) {
+  if (!localStorage.getItem("user")) {
     return;
   }
   localStorage.removeItem("user");
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
   
   // Trigger cross-tab logout synchronization
   window.localStorage.setItem('logoutEvent', Date.now().toString());
@@ -132,7 +134,7 @@ api.interceptors.request.use(
       }, 3000);
     }
 
-    const token = localStorage.getItem("accessToken");
+    const token = getAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -205,18 +207,13 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const refreshToken = localStorage.getItem("refreshToken");
-        // Refresh access token - pass refreshToken in body as fallback if cookies are blocked
-        const response = await api.post(`/auth/refresh-token`, { refreshToken });
+        // Refresh access token - browser sends cookies automatically with credentials
+        const response = await api.post(`/auth/refresh-token`);
 
         const newAccessToken = response.data?.data?.accessToken;
-        const newRefreshToken = response.data?.data?.refreshToken;
 
         if (newAccessToken) {
-          localStorage.setItem("accessToken", newAccessToken);
-        }
-        if (newRefreshToken) {
-          localStorage.setItem("refreshToken", newRefreshToken);
+          setAccessToken(newAccessToken);
         }
 
         isRefreshing = false;

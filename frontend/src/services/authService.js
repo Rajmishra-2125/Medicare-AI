@@ -1,4 +1,4 @@
-import api from "./api";
+import api, { setAccessToken } from "./api";
 
 // Register user
 const register = async (userData) => {
@@ -7,10 +7,7 @@ const register = async (userData) => {
   if (response.data) {
     localStorage.setItem("user", JSON.stringify(response.data.data));
     if (response.data.accessToken) {
-      localStorage.setItem("accessToken", response.data.accessToken);
-    }
-    if (response.data.refreshToken) {
-      localStorage.setItem("refreshToken", response.data.refreshToken);
+      setAccessToken(response.data.accessToken);
     }
   }
 
@@ -24,10 +21,7 @@ const googleLogin = async (tokenData) => {
   if (response.data) {
     localStorage.setItem("user", JSON.stringify(response.data.data.user));
     if (response.data.data.accessToken) {
-      localStorage.setItem("accessToken", response.data.data.accessToken);
-    }
-    if (response.data.data.refreshToken) {
-      localStorage.setItem("refreshToken", response.data.data.refreshToken);
+      setAccessToken(response.data.data.accessToken);
     }
   }
 
@@ -39,7 +33,7 @@ const login = async (userData) => {
   const response = await api.post("/auth/login", userData);
 
   if (response.data && response.data.data) {
-    const { is2FA, user, accessToken, refreshToken } = response.data.data;
+    const { is2FA, user, accessToken } = response.data.data;
     if (is2FA) {
       return response.data.data; // Return raw 2FA payload (is2FA, twoFactorToken, userId)
     }
@@ -48,10 +42,7 @@ const login = async (userData) => {
       localStorage.setItem("user", JSON.stringify(user));
     }
     if (accessToken) {
-      localStorage.setItem("accessToken", accessToken);
-    }
-    if (refreshToken) {
-      localStorage.setItem("refreshToken", refreshToken);
+      setAccessToken(accessToken);
     }
   }
 
@@ -78,15 +69,12 @@ const login2FA = async (twoFactorData) => {
   const response = await api.post("/auth/2fa/login", twoFactorData);
 
   if (response.data && response.data.data) {
-    const { user, accessToken, refreshToken } = response.data.data;
+    const { user, accessToken } = response.data.data;
     if (user) {
       localStorage.setItem("user", JSON.stringify(user));
     }
     if (accessToken) {
-      localStorage.setItem("accessToken", accessToken);
-    }
-    if (refreshToken) {
-      localStorage.setItem("refreshToken", refreshToken);
+      setAccessToken(accessToken);
     }
   }
 
@@ -100,10 +88,7 @@ const verifyOTP = async (otpData) => {
   if (response.data) {
     localStorage.setItem("user", JSON.stringify(response.data.data.user));
     if (response.data.data.accessToken) {
-      localStorage.setItem("accessToken", response.data.data.accessToken);
-    }
-    if (response.data.data.refreshToken) {
-      localStorage.setItem("refreshToken", response.data.data.refreshToken);
+      setAccessToken(response.data.data.accessToken);
     }
   }
 
@@ -118,8 +103,7 @@ const logout = async () => {
     console.error("Logout failed on server", error);
   }
   localStorage.removeItem("user");
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
+  setAccessToken("");
   window.localStorage.setItem('logoutEvent', Date.now().toString());
 };
 
@@ -183,8 +167,7 @@ const deleteAccount = async (data) => {
     },
   });
   localStorage.removeItem("user");
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
+  setAccessToken("");
   return response.data;
 };
 

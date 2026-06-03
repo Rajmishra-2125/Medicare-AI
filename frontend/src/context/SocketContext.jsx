@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import io from "socket.io-client";
 import { addNotification } from "../features/notifications/notificationSlice";
+import { getAccessToken } from "../services/api";
 
 const SocketContext = createContext();
 
@@ -14,7 +15,7 @@ export const SocketProvider = ({ children }) => {
   useEffect(() => {
     const userId = user?._id || user?.id;
     if (userId) {
-      const token = localStorage.getItem("accessToken");
+      const token = getAccessToken();
       
       // Connect to the backend
       const socketInstance = io(
