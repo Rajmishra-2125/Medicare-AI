@@ -34,7 +34,7 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
         process.env.REFRESH_TOKEN_SECRET
       );
 
-      const user = await User.findById(decodedToken?._id);
+      const user = await User.findById(decodedToken?._id).select("+refreshToken");
 
       if (user && incomingRefreshToken === user.refreshToken) {
         // Generate fresh new tokens
