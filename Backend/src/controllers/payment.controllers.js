@@ -6,6 +6,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { Appointment } from "../models/appointment.models.js";
 import { Doctor } from "../models/doctor.models.js";
 import { User } from "../models/user.models.js";
+import { Slot } from "../models/slots.models.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import { escapeHTML } from "../utils/sanitize.js";
 
@@ -46,6 +47,11 @@ export const createOrder = asyncHandler(async (req, res) => {
     await Appointment.findById(appointmentId).populate("patientId");
   if (!appointment) {
     throw new ApiError(404, "Appointment not found");
+  }
+
+  const patientIdStr = appointment.patientId._id ? appointment.patientId._id.toString() : appointment.patientId.toString();
+  if (patientIdStr !== req.user._id.toString()) {
+    throw new ApiError(403, "You are not authorized to create a payment order for this appointment");
   }
 
   if (appointment.paymentStatus === "PAID") {
@@ -126,6 +132,17 @@ export const verifyPayment = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Appointment not found");
   }
 
+  // IDOR check: Verify the appointment belongs to the logged in patient
+  const patientIdStr = appointment.patientId._id ? appointment.patientId._id.toString() : appointment.patientId.toString();
+  if (patientIdStr !== req.user._id.toString()) {
+    throw new ApiError(403, "You are not authorized to verify payment for this appointment");
+  }
+
+  // Order binding verify
+  if (!appointment.cashfreeOrderId || appointment.cashfreeOrderId !== order_id) {
+    throw new ApiError(400, "Invalid payment order details for this appointment");
+  }
+
   const cashfree = getCashfreeInstance();
 
   try {
@@ -133,7 +150,17 @@ export const verifyPayment = asyncHandler(async (req, res) => {
 
     if (response.data.order_status !== "PAID") {
       appointment.paymentStatus = "FAILED";
+      appointment.status = "CANCELLED";
       await appointment.save();
+
+      // Free the Slot
+      if (appointment.slotId) {
+        await Slot.findByIdAndUpdate(appointment.slotId, {
+          status: "AVAILABLE",
+          bookedBy: null,
+        });
+      }
+
       throw new ApiError(
         400,
         "Payment verification failed. Order is not paid."

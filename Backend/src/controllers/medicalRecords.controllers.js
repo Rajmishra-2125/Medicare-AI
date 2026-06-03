@@ -1,5 +1,7 @@
 import { MedicalRecord } from "../models/medicalRecord.models.js";
 import { User } from "../models/user.models.js";
+import { Doctor } from "../models/doctor.models.js";
+import { Appointment } from "../models/appointment.models.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
@@ -34,6 +36,25 @@ const uploadRecord = asyncHandler(async (req, res) => {
       404,
       "Invalid Patient provided. Please use an exact correct Patient ID or Patient Fullname."
     );
+  }
+
+  // Enforce role and relationship validation
+  if (req.user?.role !== "DOCTOR" && req.user?.role !== "ADMIN") {
+    throw new ApiError(403, "Only doctors and admins are authorized to upload medical records");
+  }
+
+  if (req.user?.role === "DOCTOR") {
+    const doctorProfile = await Doctor.findOne({ doctorId: req.user._id });
+    if (!doctorProfile) {
+      throw new ApiError(404, "Doctor profile not found");
+    }
+    const hasRelationship = await Appointment.exists({
+      patientId: patient._id,
+      doctorId: doctorProfile._id
+    });
+    if (!hasRelationship) {
+      throw new ApiError(403, "You do not have a professional relationship with this patient to upload records");
+    }
   }
 
   const fileLocalPath = req.file?.path;
@@ -99,8 +120,28 @@ const getRecords = asyncHandler(async (req, res) => {
   let query = {};
   if (userRole === "PATIENT") {
     query.patientId = userId;
-  } else if (patientId) {
+  } else if (userRole === "DOCTOR") {
+    if (!patientId) {
+      throw new ApiError(400, "Patient ID is required for doctor access");
+    }
+    const doctorProfile = await Doctor.findOne({ doctorId: userId });
+    if (!doctorProfile) {
+      throw new ApiError(404, "Doctor profile not found");
+    }
+    const hasRelationship = await Appointment.exists({
+      patientId: patientId,
+      doctorId: doctorProfile._id
+    });
+    if (!hasRelationship) {
+      throw new ApiError(403, "You do not have a professional relationship with this patient to view their records");
+    }
     query.patientId = patientId;
+  } else if (userRole === "ADMIN") {
+    if (patientId) {
+      query.patientId = patientId;
+    }
+  } else {
+    throw new ApiError(403, "Unauthorized role access");
   }
 
   const records = await MedicalRecord.find(query)

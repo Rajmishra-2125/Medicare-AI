@@ -10,6 +10,9 @@ import {
   emailPrescriptionController,
 } from "../controllers/doctor.controllers.js";
 import { verifyJWT } from "../middlewares/auth.middlewares.js";
+import { isDoctor } from "../middlewares/isDoctor.js";
+import { isPatient } from "../middlewares/isPatient.js";
+
 import { cacheMiddleware } from "../middlewares/cache.middleware.js";
 import { searchDoctors } from "../controllers/doctorSearch.controllers.js";
 import { getDoctorAnalytics } from "../controllers/doctorAnalytics.controllers.js";
@@ -44,7 +47,7 @@ router.route("/my-profile").get(verifyJWT, getMyProfile);
 router.route("/analytics").get(verifyJWT, getDoctorAnalytics);
 
 // Update doctor profile
-router.route("/updateInfo").patch(verifyJWT, updateDoctorProfile);
+router.route("/updateInfo").patch(verifyJWT, isDoctor, updateDoctorProfile);
 
 // Advanced search route
 router.route("/search").get(searchDoctors);

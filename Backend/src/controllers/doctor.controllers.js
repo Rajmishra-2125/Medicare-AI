@@ -12,6 +12,12 @@ import { prescriptionTemplate } from "../utils/emailTemplates.js";
 const getDoctors = asyncHandler(async (req, res) => {
   const doctors = await Doctor.aggregate([
     {
+      $match: {
+        isVisible: true,
+        isVerified: true
+      }
+    },
+    {
       $lookup: {
         from: "users",
         localField: "doctorId",
@@ -39,6 +45,8 @@ const getDoctors = asyncHandler(async (req, res) => {
     {
       $match: {
         doctorDetails: { $exists: true },
+        isVisible: true,
+        isAcceptingNewPatients: true,
       },
     },
   ]);
