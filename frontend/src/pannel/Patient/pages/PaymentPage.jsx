@@ -64,9 +64,13 @@ function PaymentPage() {
     if (!appointment) return;
     setPaying(true);
     try {
-      // 1. Load Cashfree SDK
+      // 1. Load Cashfree SDK with dynamic environment resolution
+      const isProductionEnv = 
+        import.meta.env.VITE_CASHFREE_MODE === "production" || 
+        (window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1");
+      
       const cashfree = await load({
-        mode: import.meta.env.VITE_CASHFREE_MODE || "sandbox",
+        mode: isProductionEnv ? "production" : "sandbox",
       });
 
       // 2. Create order on Backend

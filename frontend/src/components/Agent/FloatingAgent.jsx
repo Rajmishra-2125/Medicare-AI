@@ -195,12 +195,6 @@ const FloatingAgent = () => {
         </div>
       </div>
 
-      {/* Medical Disclaimer Banner */}
-      <div className="bg-amber-50 dark:bg-amber-950/20 border-b border-amber-100 dark:border-amber-900/50 p-2.5 text-[11px] text-amber-800 dark:text-amber-300 leading-normal flex items-start gap-2 shrink-0">
-        <span className="font-bold shrink-0 mt-0.5">⚠️ Disclaimer:</span>
-        <span>MediBot is an AI assistant, not a doctor. For life-threatening emergencies, contact local emergency services immediately.</span>
-      </div>
-
       {/* Messages Window */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50 dark:bg-slate-900/50">
         {chatHistory.map((msg, index) => (
