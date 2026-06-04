@@ -11,10 +11,13 @@ import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./config/swagger.js";
 import { verifyJWT } from "./middlewares/auth.middlewares.js";
 import { isAdmin } from "./middlewares/isAdmin.js";
+import connectDB from "./db/index.js";
+import mongoose from "mongoose";
 
 // CORS
 const allowedOrigins = [
   process.env.FRONTEND_URL,
+  process.env.CORS_ORIGIN,
   "http://localhost:5173",
 ].filter(Boolean);
 
@@ -86,6 +89,19 @@ app.use(
 
 app.use(express.static("public"));
 app.use(cookieParser());
+
+// Database connection middleware for serverless environment compatibility
+app.use(async (req, res, next) => {
+  if (mongoose.connection.readyState === 1) {
+    return next();
+  }
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 app.get("/healthcheck", (req, res) => {
   res.status(200).send("OK");

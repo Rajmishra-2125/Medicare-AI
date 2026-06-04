@@ -11,7 +11,7 @@ Sentry.init({
 
 validateEnvironment();
 
-import "./app.js";
+import { app } from "./app.js";
 import { server } from "./socket.js";
 import connectDB from "./db/index.js";
 const PORT = process.env.PORT || 8001;
@@ -25,16 +25,21 @@ if (!process.env.GEMINI_MODEL) {
   );
 }
 
-connectDB()
-  .then(() => {
-    server.listen(PORT, HOST, () => {
-      console.log(`✅Server is running on port ${PORT}`);
-      setupCronJobs();
+// Stateful server start (Render or local execution). Serverless platforms (Vercel) will bypass this and call the exported handler directly.
+if (!process.env.VERCEL) {
+  connectDB()
+    .then(() => {
+      server.listen(PORT, HOST, () => {
+        console.log(`✅Server is running on port ${PORT}`);
+        setupCronJobs();
+      });
+    })
+    .catch((err) => {
+      console.log("❌MongoDB connection error", err);
     });
-  })
-  .catch((err) => {
-    console.log("❌MongoDB connection error", err);
-  });
+}
+
+export default app;
 
 // Global promise rejection and uncaught exception handlers
 process.on("unhandledRejection", (reason, promise) => {
