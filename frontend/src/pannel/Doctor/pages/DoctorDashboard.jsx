@@ -115,7 +115,7 @@ const DoctorDashboard = () => {
             <h3 className="text-lg font-bold text-zinc-800 dark:text-white mb-1">Practice Revenue Trend</h3>
             <p className="text-xs text-zinc-500 dark:text-slate-400 mb-6">Net monthly earnings from paid sessions (6-month aggregate)</p>
             <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <AreaChart data={analytics.monthlyRevenue} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
@@ -149,7 +149,7 @@ const DoctorDashboard = () => {
             </div>
             
             <div className="h-56 relative flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <PieChart>
                   <Pie
                     data={analytics.statusDistribution.filter(d => d.value > 0)}

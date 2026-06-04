@@ -4,7 +4,6 @@ const OFFLINE_URL = "/index.html";
 const ASSETS_TO_CACHE = [
   "/",
   "/index.html",
-  "/favicon.ico",
 ];
 
 // Install Event - Pre-cache shell and core pages
@@ -12,7 +11,13 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log("[Service Worker] Pre-caching structural shell assets");
-      return cache.addAll(ASSETS_TO_CACHE);
+      return Promise.all(
+        ASSETS_TO_CACHE.map((url) => {
+          return cache.add(url).catch((err) => {
+            console.error(`[Service Worker] Failed to cache ${url}:`, err);
+          });
+        })
+      );
     }).then(() => self.skipWaiting())
   );
 });
