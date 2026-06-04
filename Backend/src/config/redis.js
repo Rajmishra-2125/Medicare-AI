@@ -6,6 +6,17 @@ const REDIS_URL = process.env.REDIS_URL;
 
 const redisClient = createClient({
   url: REDIS_URL,
+  socket: {
+    reconnectStrategy: (retries) => {
+      // Stop retrying after 3 attempts to prevent blocking serverless requests
+      if (retries > 3) {
+        return false;
+      }
+      return Math.min(retries * 100, 1000);
+    },
+    connectTimeout: 2000, // 2 seconds connect timeout
+  },
+  disableOfflineQueue: true, // Fail commands immediately when disconnected instead of queueing/hanging
 });
 
 let connectionAttempted = false;
