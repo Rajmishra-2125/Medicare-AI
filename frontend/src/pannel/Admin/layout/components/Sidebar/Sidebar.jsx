@@ -17,7 +17,7 @@ import {
  * Admin Sidebar component with fixed positioning logic
  * and custom styling to match the requested design.
  */
-const Sidebar = ({ isCollapsed }) => {
+const Sidebar = ({ isCollapsed, setIsSidebarCollapsed }) => {
   const navItems = [
     { name: "Dashboard", path: "/admin/dashboard", icon: LayoutDashboard },
     { name: "Appointments", path: "/admin/appointments", icon: ClipboardList },
@@ -30,7 +30,11 @@ const Sidebar = ({ isCollapsed }) => {
 
   return (
     <aside
-      className={`${isCollapsed ? "w-20" : "w-72"} bg-white dark:bg-[#0f172a] text-gray-500 dark:text-slate-300 flex flex-col pt-6 border-r border-gray-200 dark:border-slate-800 transition-all duration-300 ease-in-out overflow-hidden`}
+      className={`fixed md:static top-0 left-0 z-40 h-full md:h-auto pt-20 md:pt-6 border-r border-gray-200 dark:border-slate-800 bg-white dark:bg-[#0f172a] text-gray-500 dark:text-slate-300 flex flex-col transition-all duration-300 ease-in-out overflow-hidden ${
+        isCollapsed
+          ? "-translate-x-full md:translate-x-0 md:w-20"
+          : "translate-x-0 w-72 md:w-72"
+      }`}
     >
       <nav className="flex-1 px-4 space-y-4">
         {navItems.map((item) => (
@@ -38,6 +42,11 @@ const Sidebar = ({ isCollapsed }) => {
             key={item.name}
             to={item.path}
             title={isCollapsed ? item.name : ""}
+            onClick={() => {
+              if (window.innerWidth < 768 && setIsSidebarCollapsed) {
+                setIsSidebarCollapsed(true);
+              }
+            }}
             className={({ isActive }) =>
               `flex items-center ${isCollapsed ? "justify-center" : "gap-4"} px-4 py-3.5 rounded-xl transition-all duration-200 ${
                 isActive
