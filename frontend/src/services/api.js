@@ -12,11 +12,16 @@ const api = axios.create({
 let isRefreshing = false;
 let failedQueue = [];
 
-let inMemoryAccessToken = '';
+let inMemoryAccessToken = localStorage.getItem("accessToken") || '';
 
 export const getAccessToken = () => inMemoryAccessToken;
 export const setAccessToken = (token) => {
   inMemoryAccessToken = token;
+  if (token) {
+    localStorage.setItem("accessToken", token);
+  } else {
+    localStorage.removeItem("accessToken");
+  }
 };
 
 const processQueue = (error, token = null) => {

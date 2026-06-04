@@ -20,13 +20,13 @@ import { Session } from "../models/session.models.js";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-// Dynamic cookie options builder resolving localhost HTTP vs production HTTPS environments
-const getCookieOptions = (req) => {
-  const isLocalhost = req.get("host")?.includes("localhost") || req.get("host")?.includes("127.0.0.1");
+// Dynamic cookie options builder resolving HTTP vs HTTPS environments
+export const getCookieOptions = (req) => {
+  const isSecure = req.secure || req.headers["x-forwarded-proto"] === "https";
   return {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production" && !isLocalhost,
-    sameSite: process.env.NODE_ENV === "production" && !isLocalhost ? "none" : "lax",
+    secure: isSecure,
+    sameSite: isSecure ? "none" : "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   };
 };
@@ -306,26 +306,58 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       throw new ApiError(401, "Invalid refresh token");
     }
 
-    // Verify session in database
-    const activeSession = await Session.findOne({
+    // Verify session in database (standard or grace period check)
+    let activeSession = await Session.findOne({
       refreshToken: incomingRefreshToken,
       isActive: true,
       expiresAt: { $gt: new Date() }
     });
+
+    let isGracePeriod = false;
+
+    if (!activeSession) {
+      // Fallback: Check if it matches an old refresh token rotated recently (within 20s)
+      const graceThreshold = new Date(Date.now() - 20000); // 20 seconds
+      activeSession = await Session.findOne({
+        oldRefreshToken: incomingRefreshToken,
+        isActive: true,
+        rotatedAt: { $gt: graceThreshold },
+        expiresAt: { $gt: new Date() }
+      });
+      if (activeSession) {
+        isGracePeriod = true;
+      }
+    }
 
     if (!activeSession) {
       throw new ApiError(401, "Session expired or invalid");
     }
 
     const options = getCookieOptions(req);
+    let accessToken;
+    let refreshToken;
 
-    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
-      user._id,
-      req
-    );
+    if (isGracePeriod) {
+      // Concurrent request within grace period: reuse the already rotated refresh token
+      refreshToken = activeSession.refreshToken;
+      accessToken = user.generateAccessToken();
+    } else {
+      // Standard rotation: generate fresh tokens
+      accessToken = user.generateAccessToken();
+      refreshToken = user.generateRefreshToken();
 
-    // Deactivate/delete the old session since we rotated it
-    await Session.deleteOne({ _id: activeSession._id });
+      // Rotate within the same session instead of deleting it
+      activeSession.oldRefreshToken = incomingRefreshToken;
+      activeSession.refreshToken = refreshToken;
+      activeSession.rotatedAt = new Date();
+      activeSession.expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      activeSession.lastUsedAt = new Date();
+      await activeSession.save();
+
+      // Legacy compatibility: save on User model
+      user.refreshToken = refreshToken;
+      await user.save({ validateBeforeSave: false });
+    }
 
     return res
       .status(200)

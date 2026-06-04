@@ -13,6 +13,13 @@ const sessionSchema = new Schema(
       required: true,
       unique: true,
     },
+    oldRefreshToken: {
+      type: String,
+      index: true,
+    },
+    rotatedAt: {
+      type: Date,
+    },
     deviceInfo: {
       userAgent: String,
       ipAddress: String,
