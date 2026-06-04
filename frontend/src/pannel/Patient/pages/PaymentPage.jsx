@@ -64,16 +64,7 @@ function PaymentPage() {
     if (!appointment) return;
     setPaying(true);
     try {
-      // 1. Load Cashfree SDK with dynamic environment resolution
-      const isProductionEnv = 
-        import.meta.env.VITE_CASHFREE_MODE === "production" || 
-        (window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1");
-      
-      const cashfree = await load({
-        mode: isProductionEnv ? "production" : "sandbox",
-      });
-
-      // 2. Create order on Backend
+      // 1. Create order on Backend first
       const orderRes = await paymentService.createOrder(appointment._id);
       const order = orderRes?.data || orderRes;
       
@@ -82,6 +73,12 @@ function PaymentPage() {
         setPaying(false);
         return;
       }
+
+      // 2. Load Cashfree SDK with matching environment resolution
+      const isProductionEnv = order.cf_environment === "PRODUCTION";
+      const cashfree = await load({
+        mode: isProductionEnv ? "production" : "sandbox",
+      });
 
       // 3. Open Cashfree checkout modal
       let checkoutOptions = {

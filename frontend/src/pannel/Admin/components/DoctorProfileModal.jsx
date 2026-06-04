@@ -65,7 +65,7 @@ const DoctorProfileModal = ({ doctor, onClose, onApprove }) => {
                       <div className="p-3 bg-white dark:bg-slate-700 rounded-[16px] shadow-sm"><DollarSign className="w-5 h-5 text-emerald-500 dark:text-emerald-400" /></div>
                       <div>
                          <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest">Initial Consultation</p>
-                         <p className="text-base font-black text-gray-900 dark:text-white">${doctor.consultationFee}</p>
+                         <p className="text-base font-black text-gray-900 dark:text-white">₹{doctor.consultationFee}</p>
                       </div>
                    </div>
                 </div>

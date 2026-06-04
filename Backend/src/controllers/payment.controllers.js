@@ -83,7 +83,10 @@ export const createOrder = asyncHandler(async (req, res) => {
       customer_id: `cust_${patient._id}`,
       customer_name: patient.fullname || "Patient",
       customer_email: patient.email || "patient@medicare.com",
-      customer_phone: patient.phone || "9999999999",
+      customer_phone: (() => {
+        const clean = (patient.phone || "9999999999").replace(/\D/g, "");
+        return clean.length >= 10 ? clean.slice(-10) : clean;
+      })(),
     },
   };
 
@@ -100,7 +103,10 @@ export const createOrder = asyncHandler(async (req, res) => {
       .json(
         new ApiResponse(
           200,
-          response.data,
+          {
+            ...response.data,
+            cf_environment: process.env.CASHFREE_ENVIRONMENT || "SANDBOX"
+          },
           "Payment order created successfully"
         )
       );

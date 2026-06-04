@@ -40,6 +40,8 @@ function Appointments() {
 
   const [activeTab, setActiveTab] = useState("book"); // book, myAppointments
 
+  const [countryCode, setCountryCode] = useState("+91");
+
   // Booking Form State
   const [formData, setFormData] = useState({
     patientName: "",
@@ -52,6 +54,33 @@ function Appointments() {
     appointmentType: "in-person",
     reason: "",
   });
+
+  useEffect(() => {
+    if (user) {
+      const fullPhone = user?.phone || "";
+      const match = fullPhone.match(/^(\+91|\+1|\+44|\+61|\+971|\+86|\+81|\+49)(.+)$/);
+      let code = "+91";
+      let num = fullPhone;
+      if (match) {
+        code = match[1];
+        num = match[2];
+      } else if (fullPhone.startsWith("+")) {
+        const matchGeneral = fullPhone.match(/^(\+[0-9]{1,4})([0-9]+)$/);
+        if (matchGeneral) {
+          code = matchGeneral[1];
+          num = matchGeneral[2];
+        }
+      }
+      setCountryCode(code);
+
+      setFormData((prev) => ({
+        ...prev,
+        patientName: user.fullname || "",
+        email: user.email || "",
+        phone: num,
+      }));
+    }
+  }, [user]);
 
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -221,9 +250,13 @@ function Appointments() {
   // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    let val = value;
+    if (name === "phone") {
+      val = value.replace(/\D/g, "");
+    }
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: val,
     }));
     // Clear error for this field
     if (formErrors[name]) {
@@ -272,7 +305,12 @@ function Appointments() {
     if (!formData.email.trim()) errors.email = "Email is required";
     else if (!/\S+@\S+\.\S+/.test(formData.email))
       errors.email = "Email is invalid";
-    if (!formData.phone.trim()) errors.phone = "Phone is required";
+    const rawNumber = formData.phone.replace(/\D/g, "");
+    if (!rawNumber) {
+      errors.phone = "Phone is required";
+    } else if (countryCode === "+91" && rawNumber.length !== 10) {
+      errors.phone = "Please enter a valid 10-digit mobile number";
+    }
     if (!formData.selectedDoctor)
       errors.selectedDoctor = "Please select a doctor";
     if (!formData.appointmentDate) errors.appointmentDate = "Date is required";
@@ -480,20 +518,41 @@ function Appointments() {
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Phone Number *
                           </label>
-                          <div className="relative">
-                            <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                            <input
-                              type="tel"
-                              name="phone"
-                              value={formData.phone}
-                              onChange={handleInputChange}
-                              className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors ${
-                                formErrors.phone
-                                  ? "border-red-500"
-                                  : "border-gray-300"
-                              }`}
-                              placeholder="+1 234 567 8900"
-                            />
+                          <div className="flex gap-2">
+                            <div className="relative shrink-0">
+                              <select
+                                value={countryCode}
+                                onChange={(e) => setCountryCode(e.target.value)}
+                                className="h-full pl-3 pr-8 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-medium appearance-none cursor-pointer"
+                              >
+                                <option value="+91">🇮🇳 +91</option>
+                                <option value="+1">🇺🇸 +1</option>
+                                <option value="+44">🇬🇧 +44</option>
+                                <option value="+61">🇦🇺 +61</option>
+                                <option value="+971">🇦🇪 +971</option>
+                                <option value="+86">🇨🇳 +86</option>
+                                <option value="+81">🇯🇵 +81</option>
+                                <option value="+49">🇩🇪 +49</option>
+                              </select>
+                              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                              </div>
+                            </div>
+                            <div className="relative flex-1">
+                              <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                              <input
+                                type="tel"
+                                name="phone"
+                                value={formData.phone}
+                                onChange={handleInputChange}
+                                className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors ${
+                                  formErrors.phone
+                                    ? "border-red-500"
+                                    : "border-gray-300"
+                                }`}
+                                placeholder="99999 99999"
+                              />
+                            </div>
                           </div>
                           {formErrors.phone && (
                             <p className="text-red-500 text-sm mt-1">

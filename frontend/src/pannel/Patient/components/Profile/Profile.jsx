@@ -18,6 +18,7 @@ const Profile = () => {
 
   // updating personal details
   const [isEditing, setIsEditing] = useState(false);
+  const [countryCode, setCountryCode] = useState("+91");
   const [formData, setFormData] = useState({
     fullname: "",
     username: "",
@@ -29,14 +30,30 @@ const Profile = () => {
 
   useEffect(() => {
     if (user) {
+      const fullPhone = user?.phone || "";
+      const match = fullPhone.match(/^(\+91|\+1|\+44|\+61|\+971|\+86|\+81|\+49)(.+)$/);
+      let code = "+91";
+      let num = fullPhone;
+      if (match) {
+        code = match[1];
+        num = match[2];
+      } else if (fullPhone.startsWith("+")) {
+        const matchGeneral = fullPhone.match(/^(\+[0-9]{1,4})([0-9]+)$/);
+        if (matchGeneral) {
+          code = matchGeneral[1];
+          num = matchGeneral[2];
+        }
+      }
+      setCountryCode(code);
+
       setFormData({
         fullname: user?.fullname || "",
         username: user?.username || "",
         email: user?.email || "",
-        phone: user?.phone || "",
+        phone: num,
         gender: user?.gender || "",
         dateOfBirth: user.dateOfBirth ? user.dateOfBirth.split("T")[0] : "",
-      })
+      });
     }
   }, [user]);
 
@@ -46,7 +63,21 @@ const Profile = () => {
 
    const handleSubmittingPersonalDetails = (e) => {
      e.preventDefault();
-     dispatch(updateUserPersonalDetails(formData));
+     const rawNumber = formData.phone.replace(/\D/g, "");
+     if (!rawNumber) {
+       toast.error("Phone number is required");
+       return;
+     }
+     if (countryCode === "+91" && rawNumber.length !== 10) {
+       toast.error("Please enter a valid 10-digit mobile number");
+       return;
+     }
+
+     const updatedData = {
+       ...formData,
+       phone: countryCode + rawNumber,
+     };
+     dispatch(updateUserPersonalDetails(updatedData));
    };
 
   // updating Address details
@@ -281,20 +312,55 @@ const Profile = () => {
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                           Phone Number
                         </label>
-                        <div className="relative">
-                          <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                          <input
-                            type="text"
-                            name="phone"
-                            value={formData.phone}
-                            onChange={handleChange}
-                            disabled={!isEditing}
-                            className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
-                              isEditing
-                                ? "bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
-                                : "bg-gray-50 dark:bg-gray-900 border-transparent text-gray-500 dark:text-gray-400 cursor-not-allowed"
-                            }`}
-                          />
+                        <div className="flex gap-2">
+                          {isEditing ? (
+                            <>
+                              <div className="relative shrink-0">
+                                <select
+                                  value={countryCode}
+                                  onChange={(e) => setCountryCode(e.target.value)}
+                                  className="h-full pl-3 pr-8 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm font-medium appearance-none cursor-pointer"
+                                >
+                                  <option value="+91">🇮🇳 +91</option>
+                                  <option value="+1">🇺🇸 +1</option>
+                                  <option value="+44">🇬🇧 +44</option>
+                                  <option value="+61">🇦🇺 +61</option>
+                                  <option value="+971">🇦🇪 +971</option>
+                                  <option value="+86">🇨🇳 +86</option>
+                                  <option value="+81">🇯🇵 +81</option>
+                                  <option value="+49">🇩🇪 +49</option>
+                                </select>
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                                </div>
+                              </div>
+                              <div className="relative flex-1">
+                                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                <input
+                                  type="text"
+                                  name="phone"
+                                  value={formData.phone}
+                                  onChange={(e) => {
+                                    const val = e.target.value.replace(/\D/g, "");
+                                    setFormData({ ...formData, phone: val });
+                                  }}
+                                  placeholder="99999 99999"
+                                  className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
+                                />
+                              </div>
+                            </>
+                          ) : (
+                            <div className="relative flex-1">
+                              <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                              <input
+                                type="text"
+                                name="phone"
+                                value={countryCode + " " + formData.phone}
+                                disabled
+                                className="w-full pl-10 pr-4 py-2 border rounded-lg outline-none transition-all bg-gray-50 dark:bg-gray-900 border-transparent text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                              />
+                            </div>
+                          )}
                         </div>
                       </div>
 

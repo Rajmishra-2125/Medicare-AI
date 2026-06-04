@@ -23,6 +23,7 @@ import toast from "react-hot-toast";
 import Spinner from "../shared/Spinner";
 
 const Register = () => {
+  const [countryCode, setCountryCode] = useState("+91");
   const [formData, setFormData] = useState({
     fullname: "",
     username: "",
@@ -113,10 +114,26 @@ const Register = () => {
       return;
     }
 
+    const rawNumber = phone.replace(/\D/g, "");
+    if (!rawNumber) {
+      toast.error("Phone number is required");
+      return;
+    }
+    if (countryCode === "+91" && rawNumber.length !== 10) {
+      toast.error("Please enter a valid 10-digit mobile number");
+      return;
+    }
+
+    const fullPhoneNumber = countryCode + rawNumber;
+
     const registrationData = new FormData();
     Object.keys(formData).forEach((key) => {
       if (key !== "confirmPassword") {
-        registrationData.append(key, formData[key]);
+        if (key === "phone") {
+          registrationData.append(key, fullPhoneNumber);
+        } else {
+          registrationData.append(key, formData[key]);
+        }
       }
     });
 
@@ -286,17 +303,41 @@ const Register = () => {
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Phone Number
                       </label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                        <input
-                          type="tel"
-                          name="phone"
-                          value={phone}
-                          onChange={handleChange}
-                          placeholder="+1 234 567 8900"
-                          className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                          required
-                        />
+                      <div className="flex gap-2">
+                        <div className="relative shrink-0">
+                          <select
+                            value={countryCode}
+                            onChange={(e) => setCountryCode(e.target.value)}
+                            className="h-full pl-3 pr-8 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm font-medium appearance-none cursor-pointer"
+                          >
+                            <option value="+91">🇮🇳 +91</option>
+                            <option value="+1">🇺🇸 +1</option>
+                            <option value="+44">🇬🇧 +44</option>
+                            <option value="+61">🇦🇺 +61</option>
+                            <option value="+971">🇦🇪 +971</option>
+                            <option value="+86">🇨🇳 +86</option>
+                            <option value="+81">🇯🇵 +81</option>
+                            <option value="+49">🇩🇪 +49</option>
+                          </select>
+                          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                          </div>
+                        </div>
+                        <div className="relative flex-1">
+                          <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                          <input
+                            type="tel"
+                            name="phone"
+                            value={phone}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/\D/g, "");
+                              setFormData({ ...formData, phone: val });
+                            }}
+                            placeholder="99999 99999"
+                            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                            required
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -601,7 +601,7 @@ function Doctors() {
                             Consultation Fee
                           </p>
                           <p className="text-xl font-bold text-gray-900 dark:text-white">
-                            ${doctor.consultationFee}
+                            ₹{doctor.consultationFee}
                           </p>
                         </div>
                         <div>
