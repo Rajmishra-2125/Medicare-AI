@@ -160,7 +160,7 @@ const Register = () => {
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden transition-colors duration-200">
           <div className="md:flex">
             {/* Left Side - Branding & Features (Hidden on mobile, visible on md+) */}
-            <div className="md:w-1/3 bg-linear-to-br from-blue-600 to-indigo-700 dark:from-blue-900 dark:to-indigo-900 p-8 text-white">
+            <div className="hidden md:block md:w-1/3 bg-linear-to-br from-blue-600 to-indigo-700 dark:from-blue-900 dark:to-indigo-900 p-8 text-white">
               <div className="relative z-10">
                 <div className="mt-12">
                   <h1 className="text-4xl font-bold mb-4 leading-tight">
@@ -227,7 +227,7 @@ const Register = () => {
             </div>
 
             {/* Right Side - Form */}
-            <div className="md:w-2/3 p-8">
+            <div className="w-full md:w-2/3 p-8">
               <div className="mb-6">
                 <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
                   Create Your Account
