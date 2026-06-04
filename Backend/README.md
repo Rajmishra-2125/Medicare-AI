@@ -10,7 +10,7 @@ This repository contains the backend service for the **MediCare** Doctor Appoint
 - **Role-Based Access Control (RBAC)**: Distinct permissions for `PATIENT`, `DOCTOR`, and `ADMIN`.
 - **Real-Time Communications**: Uses `Socket.io` for dynamic notifications and medical updates.
 - **Artificial Intelligence Integration**: Built-in Google Generative AI (Gemini) integration in the `/agent` routes to power the MediBot assistant.
-- **Payment Processing**: Integrated with `Razorpay` for seamless medical appointment transactions.
+- **Payment Processing**: Integrated with `Cashfree` for seamless medical appointment transactions.
 - **Caching & Rate Limiting**: Employs `Redis` along with `express-rate-limit` and `bottleneck` for scalable API performance.
 - **Security**: Hardened via `helmet`, modern CORS configurations, and input validation.
 - **Logging**: Robust, rotating file logs via `winston` and `morgan`.
@@ -26,7 +26,7 @@ This repository contains the backend service for the **MediCare** Doctor Appoint
 - **Caching:** [Redis](https://redis.io/)
 - **AI Agent:** [@google/generative-ai](https://www.npmjs.com/package/@google/generative-ai)
 - **Websockets:** [Socket.io](https://socket.io/)
-- **Payments:** [Razorpay](https://razorpay.com/)
+- **Payments:** [Cashfree](https://www.cashfree.com/)
 - **Media Uploads:** [Cloudinary](https://cloudinary.com/) with Multer
 - **Auth & Crypto:** `bcrypt`, `jsonwebtoken`, `google-auth-library`
 
@@ -71,7 +71,7 @@ The API is versioned at `v1`. The base URL prefix is: `/api/v1`
 | **Appointments**  | `/appointments`    | Booking flow, cancellations, history, and status updates.  |
 | **Slots**         | `/slots`           | Availability queries for doctors' time grids.              |
 | **Medical Rec.**  | `/medical-records` | Manage patient prescriptions, history, and medical docs.   |
-| **Payments**      | `/payments`        | Razorpay order creation and verification hooks.            |
+| **Payments**      | `/payments`        | Cashfree order creation and verification hooks.            |
 | **Notifications** | `/notifications`   | Get unread alerts or mark notifications as viewed.         |
 | **AI Agent**      | `/agent`           | Interact with the Gemini-powered MediBot assistant.        |
 
@@ -123,8 +123,9 @@ CLOUDINARY_CLOUD_NAME=name
 CLOUDINARY_API_KEY=key
 CLOUDINARY_API_SECRET=secret
 
-RAZORPAY_KEY_ID=your_razorpay_key
-RAZORPAY_KEY_SECRET=your_razorpay_secret
+CASHFREE_APP_ID=your_cashfree_app_id
+CASHFREE_SECRET_KEY=your_cashfree_secret_key
+CASHFREE_ENVIRONMENT=SANDBOX
 
 GEMINI_API_KEY=your_gemini_api_key
 

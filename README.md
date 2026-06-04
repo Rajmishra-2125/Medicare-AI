@@ -8,7 +8,7 @@ A comprehensive full-stack healthcare application built with **Node.js**, **Expr
 
 The application is deployed and running live on:
 
-- **Frontend**: https://medicare-healthcare-application.vercel.app
+- **Frontend**: https://medicare-ai-agent.onrender.com
 - **Backend API**: https://medicare-healthcare-app.onrender.com
 
 ---
@@ -71,7 +71,7 @@ Interactive ledger of all system billing and financial transactions powered by R
 - Browse and search doctors by specialty, ratings, and availability
 - Book, reschedule, and cancel appointments
 - Real-time appointment status updates
-- Secure payment integration with Razorpay
+- Secure payment integration with Cashfree
 - Medical records and prescription management
 - Video/audio consultation support (Socket.io)
 - Rate and review doctors
@@ -109,7 +109,7 @@ Interactive ledger of all system billing and financial transactions powered by R
 - **Database**: MongoDB with Mongoose ODM
 - **Authentication**: JWT + Google OAuth
 - **Real-time**: Socket.io for live updates
-- **Payment**: Razorpay integration
+- **Payment**: Cashfree integration
 - **AI**: Google Generative AI (Gemini)
 - **Caching**: Redis
 - **File Storage**: Cloudinary
@@ -179,7 +179,7 @@ doctor-appointment-project/
 - MongoDB (local or Atlas)
 - Redis server
 - Cloudinary account
-- Razorpay account
+- Cashfree account
 - Google Generative AI API key
 
 ### Backend Setup
@@ -258,9 +258,10 @@ CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
 
-# Razorpay
-RAZORPAY_KEY_ID=your_razorpay_key
-RAZORPAY_KEY_SECRET=your_razorpay_secret
+# Cashfree PG
+CASHFREE_APP_ID=your_cashfree_app_id
+CASHFREE_SECRET_KEY=your_cashfree_secret_key
+CASHFREE_ENVIRONMENT=SANDBOX
 
 # Google OAuth
 GOOGLE_CLIENT_ID=your_google_client_id
@@ -270,7 +271,7 @@ GOOGLE_CLIENT_SECRET=your_google_client_secret
 GEMINI_API_KEY=your_gemini_api_key
 
 # Deployment
-FRONTEND_URL=https://medicare-healthcare-application.vercel.app
+FRONTEND_URL=https://medicare-ai-agent.onrender.com
 ```
 
 ### Frontend (.env)
@@ -301,7 +302,7 @@ VITE_CLOUDINARY_UPLOAD_PRESET=your_preset
 | Appointments | `/appointments` | Booking, cancellation, history |
 | Slots | `/slots` | Availability and time slots |
 | Medical Records | `/medical-records` | Prescriptions and patient history |
-| Payments | `/payments` | Razorpay orders and verification |
+| Payments | `/payments` | Cashfree orders and verification |
 | Notifications | `/notifications` | Real-time alerts |
 | AI Agent | `/agent` | **MediBot assistance** - Doctor discovery and appointment booking guidance |
 
@@ -325,7 +326,7 @@ The system supports multiple authentication methods:
 
 ## 💳 Payment Integration
 
-Integrated with **Razorpay** for secure payment processing:
+Integrated with **Cashfree** for secure payment processing:
 
 - One-time payments for appointment booking
 - Payment verification
@@ -420,12 +421,12 @@ npm run test
 3. Deploy from main branch
 4. Backend URL: https://medicare-healthcare-app.onrender.com
 
-### Frontend (Vercel)
+### Frontend (Render)
 
-1. Connect GitHub repository to Vercel
+1. Connect GitHub repository to Render
 2. Set environment variables
 3. Deploy automatically on push to main
-4. Frontend URL: https://medicare-healthcare-application.vercel.app
+4. Frontend URL: https://medicare-ai-agent.onrender.com
 
 ---
 
