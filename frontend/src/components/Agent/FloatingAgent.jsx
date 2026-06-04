@@ -107,7 +107,10 @@ const FloatingAgent = () => {
                   accumulatedText += parsed.text;
                   dispatch(updateLastAssistantMessage(accumulatedText));
                 } else if (parsed.error) {
-                  dispatch(updateLastAssistantMessage(`⚠️ System Error: ${parsed.error}`));
+                  const errMsg = parsed.error.toLowerCase().includes("high traffic")
+                    ? "Sorry! We are facing high traffic. Please continue with manual method."
+                    : `⚠️ System Error: ${parsed.error}`;
+                  dispatch(updateLastAssistantMessage(errMsg));
                 }
               } catch {
                 // Ignore chunk parsing anomalies
@@ -119,7 +122,10 @@ const FloatingAgent = () => {
     } catch (error) {
       console.error("SSE stream error", error);
       dispatch(addAssistantMessagePlaceholder());
-      dispatch(updateLastAssistantMessage(`⚠️ System Error: ${error.message}. Please check connection.`));
+      const errMsg = error.message.toLowerCase().includes("high traffic")
+        ? "Sorry! We are facing high traffic. Please continue with manual method."
+        : `⚠️ System Error: ${error.message}. Please check connection.`;
+      dispatch(updateLastAssistantMessage(errMsg));
     } finally {
       dispatch(setLoading(false));
     }

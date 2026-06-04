@@ -574,7 +574,7 @@ FALLBACKS:
     res.end();
   } catch (error) {
     console.error("LLM Engine Fault:", error.message);
-    res.write(`data: ${JSON.stringify({ error: "High traffic. Please try again later." })}\n\n`);
+    res.write(`data: ${JSON.stringify({ error: "Sorry! We are facing high traffic. Please continue with manual method." })}\n\n`);
     res.end();
   }
 });
