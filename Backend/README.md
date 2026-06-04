@@ -1,161 +1,177 @@
-# MediCare Backend API
+# ⚙️ MediCare Backend API Service Guide
 
-This repository contains the backend service for the **MediCare** Doctor Appointment Management System. Built with **Node.js**, **Express**, and **MongoDB**, this robust backend handles authentication, patient-doctor interactions, appointment scheduling, artificial intelligence (Gemini) chatbot features, real-time notifications via WebSockets, and secure payment processing.
+The MediCare Backend is a robust, production-grade Express.js application designed to handle high-concurrency clinical appointment bookings, real-time messaging, WebRTC telemedicine connections, and AI-assisted triage services.
 
----
-
-## 🚀 Features & Architecture
-
-- **Authentication & Authorization**: Secure JWT-based access with refresh tokens. Google OAuth is supported.
-- **Role-Based Access Control (RBAC)**: Distinct permissions for `PATIENT`, `DOCTOR`, and `ADMIN`.
-- **Real-Time Communications**: Uses `Socket.io` for dynamic notifications and medical updates.
-- **Artificial Intelligence Integration**: Built-in Google Generative AI (Gemini) integration in the `/agent` routes to power the MediBot assistant.
-- **Payment Processing**: Integrated with `Cashfree` for seamless medical appointment transactions.
-- **Caching & Rate Limiting**: Employs `Redis` along with `express-rate-limit` and `bottleneck` for scalable API performance.
-- **Security**: Hardened via `helmet`, modern CORS configurations, and input validation.
-- **Logging**: Robust, rotating file logs via `winston` and `morgan`.
-- **Soft Delete Strategy**: Ensures data integrity by marking user, doctor, and patient profiles as `deleted` rather than hard purging. Scheduled chron jobs orchestrate final cleanup after a 30-day window.
+Built using **Node.js (v18+)**, **Express.js**, and **MongoDB (Mongoose ODM)**, the service features strict input validation, automatic API key rotation, distributed logging, memory caching via Redis, and comprehensive error tracking.
 
 ---
 
-## 🛠 Technology Stack
+## 🏗️ Backend System Architecture
 
-- **Runtime:** [Node.js](https://nodejs.org/)
-- **Framework:** [Express.js](https://expressjs.com/)
-- **Database:** [MongoDB](https://www.mongodb.com/) via [Mongoose ODM](https://mongoosejs.com/)
-- **Caching:** [Redis](https://redis.io/)
-- **AI Agent:** [@google/generative-ai](https://www.npmjs.com/package/@google/generative-ai)
-- **Websockets:** [Socket.io](https://socket.io/)
-- **Payments:** [Cashfree](https://www.cashfree.com/)
-- **Media Uploads:** [Cloudinary](https://cloudinary.com/) with Multer
-- **Auth & Crypto:** `bcrypt`, `jsonwebtoken`, `google-auth-library`
-
----
-
-## 📂 Project Structure
-
-```bash
+```
 Backend/
 ├── src/
-│   ├── app.js               # Express application and Middleware configuration
-│   ├── index.js             # Main entry point and Server initialization
-│   ├── socket.js            # Socket.io configuration and event handlers
-│   ├── config/              # Environment and Redis/Cloudinary configuration
-│   ├── controllers/         # Request handlers for HTTP routes
-│   ├── db/                  # MongoDB Connection
-│   ├── middlewares/         # Auth, Error handling, and validation filters
-│   ├── models/              # Mongoose Data Schemas
-│   ├── routes/              # Express API Route Definitions
-│   ├── scripts/             # Useful maintenance scripts
-│   ├── services/            # Reusable business logic (Auth, Payments)
-│   ├── utils/               # Helpers: Async wrappers, ApiError, ApiResponse, Logger
-│   └── validators/          # Data payload validation tools
-├── ecosystem.config.cjs     # PM2 Configuration
-├── Dockerfile               # Production Docker settings
-└── package.json             # NPM dependencies and scripts
+│   ├── app.js               # Express application initialization and middleware stacking
+│   ├── index.js             # Server bootstrapper (DB connection, socket mount, cron launch)
+│   ├── socket.js            # Socket.io connection handshakes and WebRTC signaling
+│   ├── config/              # Redis client, Cloudinary CDN, and Swagger specifications
+│   ├── db/                  # MongoDB connection setup using Mongoose
+│   ├── controllers/         # Request controllers handling HTTP requests
+│   ├── routes/              # Route mapping and mounting (versioned at /api/v1)
+│   ├── models/              # Schema structures (User, Doctor, Appointment, Slot, etc.)
+│   ├── services/            # Core logical layers (Gemini Service, Cashfree Integration, Mailer)
+│   ├── jobs/                # node-cron worker tasks
+│   ├── middlewares/         # Authorization checks, role filters, rate limits, and error handling
+│   ├── utils/               # Structured wrappers: ApiError, ApiResponse, Logger
+│   └── validators/          # Zod validation schemas
+├── Dockerfile               # Docker production deployment configuration
+├── ecosystem.config.cjs     # PM2 clustering configuration
+└── package.json             # Service dependencies and runner scripts
 ```
 
 ---
 
-## 🌐 API Endpoint Overview
+## 🔌 API Endpoints Reference
 
-The API is versioned at `v1`. The base URL prefix is: `/api/v1`
+The base path for all endpoints is `/api/v1`.
 
-| Resource          | Prefix             | Description                                                |
-| ----------------- | ------------------ | ---------------------------------------------------------- |
-| **Health**        | `/healthcheck`     | Service uptime and telemetry.                              |
-| **Auth**          | `/auth`            | Login, Registration, OAuth, OTP verify, Tokens.            |
-| **Admin**         | `/admin`           | System-wide management, Suspend accounts, global stats.    |
-| **Users**         | `/users`           | Profile updates, avatar uploads, password modifications.   |
-| **Doctors**       | `/doctors`         | Doctor directories, onboarding, verification, specialties. |
-| **Appointments**  | `/appointments`    | Booking flow, cancellations, history, and status updates.  |
-| **Slots**         | `/slots`           | Availability queries for doctors' time grids.              |
-| **Medical Rec.**  | `/medical-records` | Manage patient prescriptions, history, and medical docs.   |
-| **Payments**      | `/payments`        | Cashfree order creation and verification hooks.            |
-| **Notifications** | `/notifications`   | Get unread alerts or mark notifications as viewed.         |
-| **AI Agent**      | `/agent`           | Interact with the Gemini-powered MediBot assistant.        |
+### 🔓 Public & Authentication Paths
+| Method | Route | Middleware | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/healthcheck` | None | Returns server health status |
+| `POST` | `/auth/register` | RateLimit | Registers a new Doctor or Patient |
+| `POST` | `/auth/login` | RateLimit | Authenticates user; returns JWT cookie + access token |
+| `POST` | `/auth/verify-otp` | RateLimit | Verifies phone verification OTP code |
+| `POST` | `/auth/refresh-token` | None | Validates HttpOnly refresh cookie; rotates access tokens |
+| `POST` | `/auth/forgot-password` | None | Initiates reset-token email pipeline |
+| `POST` | `/auth/reset-password/:token`| None | Sets new password via token verification |
 
-_(Detailed swagger/postman documentation to be hosted separately or via interactive `/docs` route if enabled)_
+### 👤 Profile & User Operations
+| Method | Route | Middleware | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/users/me` | JWT | Fetches active authenticated user profile |
+| `PATCH` | `/users/update-profile` | JWT | Updates user credentials & contact details |
+| `POST` | `/users/avatar` | JWT + Multer | Uploads user profile image to Cloudinary CDN |
+| `PATCH` | `/users/change-password` | JWT | Modifies account access credentials |
 
----
+### 👨‍⚕️ Clinicians & Slots Grid
+| Method | Route | Middleware | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/doctors` | None | Lists verified doctors with filter options |
+| `GET` | `/doctors/:id` | None | Fetches detailed clinical profile and reviews |
+| `POST` | `/doctors/onboard` | JWT (Admin) | Onboards and verifies doctor credentials |
+| `GET` | `/slots/:doctorId` | JWT | Queries clinician's availability calendar |
+| `POST` | `/slots/create` | JWT (Doctor) | Manually initializes custom time availability slots |
 
-## 💻 Local Setup Instructions
+### 📅 Consultation Bookings
+| Method | Route | Middleware | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/appointments/book` | JWT (Patient) | Instantiates a pending consultation booking |
+| `GET` | `/appointments/history` | JWT | Fetches active user booking records |
+| `PATCH` | `/appointments/cancel/:id` | JWT | Cancels booking and releases calendar slot |
+| `PATCH` | `/appointments/status/:id` | JWT (Doctor) | Marks consultations as `COMPLETED` or `IN_PROGRESS` |
 
-### 1. Prerequisites
+### 💳 Cashfree Payments
+| Method | Route | Middleware | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/payments/create-order` | JWT + RateLimit| Creates Cashfree PG order & returns session ID |
+| `POST` | `/payments/verify-payment` | JWT + RateLimit| Webhook verifying transaction signatures |
 
-- **Node.js** (v18 or higher recommended)
-- **MongoDB** Instance (Local or Atlas)
-- **Redis** Server (For caching and rate limiting)
-
-### 2. Clone and Install
-
-```bash
-# Navigate to backend directory
-cd Backend
-
-# Install dependencies
-npm install
-```
-
-### 3. Environment Variables
-
-Create a `.env` file in the root of the `./Backend` directory using the provided `.env.sample`. Below are the critical keys required:
-
-```ini
-PORT=8000
-MONGODB_URI=your_mongodb_cluster_url
-CORS_ORIGIN=http://localhost:5173
-
-# Authentication & Tokens
-ACCESS_TOKEN_SECRET=your_access_token_secret
-ACCESS_TOKEN_EXPIRY=1d
-REFRESH_TOKEN_SECRET=your_refresh_token_secret
-REFRESH_TOKEN_EXPIRY=10d
-
-# Email Transporter (SMTP)
-MAIL_HOST=your_smtp_host
-MAIL_PORT=your_smtp_port
-MAIL_USER=your_smtp_user
-MAIL_PASS=your_smtp_password
-
-# External Integrations
-CLOUDINARY_CLOUD_NAME=name
-CLOUDINARY_API_KEY=key
-CLOUDINARY_API_SECRET=secret
-
-CASHFREE_APP_ID=your_cashfree_app_id
-CASHFREE_SECRET_KEY=your_cashfree_secret_key
-CASHFREE_ENVIRONMENT=SANDBOX
-
-GEMINI_API_KEY=your_gemini_api_key
-
-# Redis
-REDIS_HOST=127.0.0.1
-REDIS_PORT=6379
-```
-
-### 4. Running the Application
-
-```bash
-# Run in development mode (hot reload via nodemon)
-npm run dev
-
-# Run in production mode
-npm start
-```
-
-By default, the server will launch on `http://localhost:8000`.
+### 🤖 MediBot AI Triage (Gemini)
+| Method | Route | Middleware | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/agent/chat` | JWT + RateLimit| Processes user prompt via Gemini AI engine |
 
 ---
 
-## 🧪 Background Jobs & Maintenance
+## 💳 Cashfree Payment Gateway Integration
 
-Located in `src/jobs/`, the backend utilizes node-cron to periodically offload heavy database maintenance tasks.
+MediCare uses the official **Cashfree PG SDK (`cashfree-pg` v6.0.4)** to process all billing transactions.
 
-- **Account Deletion Job**: Checks for accounts marked strictly for deletion more than 30 days ago and fully purges them and their relational dependencies (Appointments, slots, notifications) from MongoDB.
+### Flow Architecture
+1.  **Order Initiation**: The patient requests a booking. The `/payments/create-order` controller verifies the doctor's fee, reserves the slot (`status: "RESERVED"`), creates a local Mongoose `Payment` entry, and invokes `Cashfree.PGCreateOrder()`.
+2.  **Checkout Handshake**: Cashfree returns a `payment_session_id`. The backend forwards this session ID along with the environment (e.g., `SANDBOX` or `PRODUCTION`) to the client.
+3.  **Payment Verification**: Once checkout completes, the frontend sends the Cashfree `order_id` to `/payments/verify-payment`. The backend verifies the signature using `Cashfree.PGFetchOrder(order_id)` and updates the appointment status to `CONFIRMED` and payment status to `PAID`.
 
-## 🤝 Contribution Structure
+### Expiry Policies
+*   When orders are created, they are flagged as `PENDING`.
+*   A minute-by-minute background worker cancels unpaid orders older than 15 minutes, automatically releasing the calendar slots back to `AVAILABLE`.
 
-- **Formatting**: The project enforces prettier. Use `npm run format` prior to committing.
-- **Error Handling**: Use the standardized `ApiError` class for all manual threshold exceptions.
-- **Response Format**: Use the standardized `ApiResponse` wrapper in your controllers for consistency.
+---
+
+## 🤖 MediBot AI Assistant & Key Rotation Engine
+
+MediBot leverages the Google Gemini model (defaulting to `gemini-2.5-flash`) via the `@google/generative-ai` SDK.
+
+### Multi-Key Rotation Strategy
+To prevent service interruptions due to API quota depletion (429 Rate Limits), the backend implements a rotating key manager in [gemini.service.js](file:///Users/rajmishra/Desktop/Doctor-appointment-project/doctor-appointment-project/Backend/src/services/gemini.service.js):
+*   **Key Source**: Reads a comma-separated list from `GEMINI_API_KEYS` or numbered keys `GEMINI_API_KEY_1`, `GEMINI_API_KEY_2`, and `GEMINI_API_KEY_3`.
+*   **Quota Monitoring**: The service wraps GenAI executions in a try-catch block. If a `429 Too Many Requests` or quota limit exception occurs, it increments the key index, registers the switch, and automatically retries the operation with the next available key.
+*   **Throttling**: A `bottleneck` scheduler limits throughput to **2 concurrent requests per second** (500ms spacing) to stay within free-tier quotas.
+
+### Chat Memory Cache
+Conversation histories are cached in **Redis** with a 30-minute expiration time. This keeps conversation histories fast and light without bloating the primary MongoDB collections.
+
+---
+
+## 🔌 Real-Time Communications & WebRTC
+
+The backend uses **Socket.io** to support real-time user notifications and WebRTC telemedicine signaling in [socket.js](file:///Users/rajmishra/Desktop/Doctor-appointment-project/doctor-appointment-project/Backend/src/socket.js).
+
+### Security & Token Verification
+*   **Handshake Middleware**: All socket connections verify the client's JWT access token on connection:
+    ```javascript
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    socket.user = decoded;
+    ```
+*   Spoofing is prevented by binding the socket's room actions directly to `socket.user._id`.
+
+### WebRTC Telemedicine Signaling Channels
+Doctors and patients join virtual consultations via the following events:
+*   `webrtc:join-room`: Validates that the appointment exists in MongoDB and that the connecting user is either the doctor or the patient associated with that appointment.
+*   `webrtc:offer` / `webrtc:answer`: Relays SDP parameters between peers.
+*   `webrtc:ice-candidate`: Relays connectivity candidates.
+*   `webrtc:leave`: Notifies the peer that a user has exited the consultation room.
+
+### Emission Throttling
+A connection-level rate limiter checks incoming client events:
+*   Limits each socket to a maximum of **60 messages per minute**.
+*   Exceeding this limit triggers a `Rate limit exceeded` warning and ignores subsequent inputs for that minute.
+
+---
+
+## ⏰ Automated Cron Tasks
+
+Background workers are scheduled using `node-cron` in [cron.js](file:///Users/rajmishra/Desktop/Doctor-appointment-project/doctor-appointment-project/Backend/src/jobs/cron.js):
+
+1.  **Daily Slot Generation** (`0 0 * * *`):
+    Runs daily at midnight. Generates doctor availability slots for the next 7 days for all active clinicians.
+2.  **Payment Timeout Cleanup** (`* * * * *`):
+    Runs every minute. Finds pending appointments older than 15 minutes, marks them as `CANCELLED` (reason: `"Auto-cancelled due to payment timeout"`), and frees up the booked slot back to `AVAILABLE`.
+3.  **Render Self-Ping** (`*/10 * * * *`):
+    Runs every 10 minutes. Hits the `/healthcheck` route to prevent the Render free-tier instance from falling asleep.
+
+---
+
+## 💻 Local Setup
+
+1.  Clone and navigate to the directory:
+    ```bash
+    cd Backend
+    ```
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
+3.  Set up environment variables:
+    ```bash
+    cp .env.sample .env
+    ```
+4.  Launch the services:
+    ```bash
+    # Development mode (with nodemon hot reloading)
+    npm run dev
+
+    # Production mode
+    npm start
+    ```
