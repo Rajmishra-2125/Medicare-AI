@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { X, Send, Bot, User, Loader2, Trash2 } from "lucide-react";
+import { X, Send, Bot, User, Loader2, Trash2, CreditCard } from "lucide-react";
+import { Link } from "react-router-dom";
 import { 
   toggleAgentChat, 
   addUserMessage, 
@@ -216,7 +217,24 @@ const FloatingAgent = () => {
               }`}
             >
               <div className="prose prose-sm dark:prose-invert prose-p:leading-relaxed max-w-none">
-                <ReactMarkdown>
+                <ReactMarkdown
+                  components={{
+                    a: ({ href, children, ...props }) => {
+                      if (href && (href.startsWith('/patient/payment/') || href.includes('/patient/payment/'))) {
+                        const path = href.substring(href.indexOf('/patient/payment/'));
+                        return (
+                          <Link
+                            to={path}
+                            className="mt-3 inline-flex items-center justify-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md hover:shadow-lg transition-all duration-200 gap-2 w-full text-center cursor-pointer uppercase tracking-wider"
+                          >
+                            <CreditCard className="w-3.5 h-3.5" /> Pay Now
+                          </Link>
+                        );
+                      }
+                      return <a href={href} {...props}>{children}</a>;
+                    }
+                  }}
+                >
                   {sanitizeMarkdown(msg.text)}
                 </ReactMarkdown>
               </div>

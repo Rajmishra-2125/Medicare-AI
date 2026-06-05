@@ -197,27 +197,6 @@ function Appointments() {
   }, [location.pathname]);
 
 
-  // Fetch doctors on mount
-  useEffect(() => {
-    const fetchDoctors = async () => {
-      try {
-        const data = await doctorService.getAllDoctors();
-        if (data && data.length > 0) {
-          const formattedDoctors = data.map((doc) => ({
-            name: doc.fullName,
-            specialty: doc.specialty,
-            username: doc.username,
-          }));
-          setDoctors(formattedDoctors);
-        }
-      } catch (error) {
-        console.error("Failed to fetch doctors:", error);
-        // Keep the default doctors if fetch fails
-      }
-    };
-    fetchDoctors();
-  }, []);
-
   // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
