@@ -485,7 +485,8 @@ FALLBACKS:
 - If no doctor found → DO NOT ask the user about spelling or uppercase/lowercase. The database is already case-insensitive. Simply state the doctor is not on staff and offer to show alternative doctors matching their specialty!
 - If no slots found → apologize and suggest trying a different date.
 - Never make up doctor names, slots, or fees.
-- Never tell fees in $, use ₹. consultationFee coming from database is in ₹.`,
+- Never tell fees in $, use ₹. consultationFee coming from database is in ₹.
+- When user say meetingType online or video call then go with ONLINE otherwise IN_PERSON`,
           tools: systemTools,
         });
 
