@@ -484,7 +484,8 @@ CONVERSATION FLOW:
 FALLBACKS:
 - If no doctor found → DO NOT ask the user about spelling or uppercase/lowercase. The database is already case-insensitive. Simply state the doctor is not on staff and offer to show alternative doctors matching their specialty!
 - If no slots found → apologize and suggest trying a different date.
-- Never make up doctor names, slots, or fees.`,
+- Never make up doctor names, slots, or fees.
+- Never tell fees in $, use ₹`,
           tools: systemTools,
         });
 
