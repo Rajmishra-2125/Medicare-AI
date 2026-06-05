@@ -83,11 +83,47 @@ const getAvailableSlots = async ({ doctorName, dateStr }) => {
     if (!doctorName)
       return { success: false, message: "Doctor name was not provided." };
 
+    const parseTimeToHoursMinutes = (timeStr) => {
+      if (!timeStr) return { hours: 0, minutes: 0 };
+      const parts = timeStr.trim().split(/\s+/);
+      if (parts.length < 2) return { hours: 0, minutes: 0 };
+      const time = parts[0];
+      const modifier = parts[1].toUpperCase();
+      let [hours, minutes] = time.split(":").map(Number);
+      if (isNaN(hours) || isNaN(minutes)) return { hours: 0, minutes: 0 };
+
+      if (modifier === "PM" && hours !== 12) hours += 12;
+      if (modifier === "AM" && hours === 12) hours = 0;
+
+      return { hours, minutes };
+    };
+
     // Check Cache First
     const cacheKey = `slots:${doctorName}_${dateStr || "any"}`.toLowerCase();
     if (redisClient.isOpen) {
       const cached = await redisClient.get(cacheKey);
-      if (cached) return JSON.parse(cached);
+      if (cached) {
+        const cachedResult = JSON.parse(cached);
+        if (cachedResult.success && Array.isArray(cachedResult.slots)) {
+          const now = new Date();
+          cachedResult.slots = cachedResult.slots.filter((s) => {
+            const [y, m, d] = s.date.split("-");
+            const startTimeStr = s.time.split("-")[0].trim();
+            
+            const { hours, minutes } = parseTimeToHoursMinutes(startTimeStr);
+            const pad = (num) => String(num).padStart(2, '0');
+            const isoString = `${y}-${pad(m)}-${pad(d)}T${pad(hours)}:${pad(minutes)}:00+05:30`;
+            const slotDateTime = new Date(isoString);
+            return slotDateTime.getTime() > now.getTime() + 10 * 60 * 1000;
+          });
+
+          if (cachedResult.slots.length > 0) {
+            return cachedResult;
+          }
+        } else if (!cachedResult.success) {
+          return cachedResult;
+        }
+      }
     }
 
     // The DB often stores names without 'Dr.', but the user or LLM adds it in queries
@@ -150,59 +186,20 @@ const getAvailableSlots = async ({ doctorName, dateStr }) => {
         return timeA - timeB;
       })
       .filter((s) => {
-        const slotDate = new Date(s.date);
-        const today = new Date();
+        // Construct the exact slot date and start time in Asia/Kolkata timezone
+        const year = s.date.getUTCFullYear();
+        const month = s.date.getUTCMonth(); // 0-indexed
+        const date = s.date.getUTCDate();
 
-        // 1. If slot date is strictly in the past, discard it
-        if (slotDate.getUTCFullYear() < today.getUTCFullYear()) return false;
-        if (
-          slotDate.getUTCFullYear() === today.getUTCFullYear() &&
-          slotDate.getUTCMonth() < today.getUTCMonth()
-        )
-          return false;
-        if (
-          slotDate.getUTCFullYear() === today.getUTCFullYear() &&
-          slotDate.getUTCMonth() === today.getUTCMonth() &&
-          slotDate.getUTCDate() < today.getUTCDate()
-        )
-          return false;
+        const { hours, minutes } = parseTimeToHoursMinutes(s.startTime);
+        const pad = (num) => String(num).padStart(2, '0');
+        const isoString = `${year}-${pad(month + 1)}-${pad(date)}T${pad(hours)}:${pad(minutes)}:00+05:30`;
+        const slotDateTime = new Date(isoString);
 
-        // 2. If slot is today, ensure slot start time is in the future
-        if (
-          slotDate.getUTCFullYear() === today.getUTCFullYear() &&
-          slotDate.getUTCMonth() === today.getUTCMonth() &&
-          slotDate.getUTCDate() === today.getUTCDate()
-        ) {
-          const timezone = "Asia/Kolkata";
-          try {
-            const options = {
-              timeZone: timezone,
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: true,
-            };
-            const formatter = new Intl.DateTimeFormat("en-US", options);
-            const parts = formatter.formatToParts(today);
-            const hourPart = parts.find((p) => p.type === "hour").value;
-            const minutePart = parts.find((p) => p.type === "minute").value;
-            const dayPeriodPart = parts.find(
-              (p) => p.type === "dayPeriod"
-            ).value;
-            const currentMinutesStr = `${hourPart}:${minutePart} ${dayPeriodPart}`;
-            const currentMinutes = parseTimeToMinutes(currentMinutesStr);
-            const slotMinutes = parseTimeToMinutes(s.startTime);
-
-            // Filter out slots starting within 10 minutes from now
-            return slotMinutes > currentMinutes + 10;
-          } catch (e) {
-            // Fallback: don't filter if timezone formatting fails
-            return true;
-          }
-        }
-
-        return true;
-      })
-      .slice(0, 10);
+        const now = new Date();
+        // Return true only if slot time is in the future (with 10 minutes buffer)
+        return slotDateTime.getTime() > now.getTime() + 10 * 60 * 1000;
+      });
 
     if (slots.length === 0) {
       return {
@@ -471,9 +468,10 @@ PERSONA: Compassionate, concise, and professional. Never mention internal tool n
 
 STRICT RULES FOR TOOL USE:
 1. search_doctors → Pass only the bare name (no "Dr." prefix) e.g. "Raj Mishra" not "Dr.Raj".
-2. get_available_slots → Use the EXACT full doctor name returned from search_doctors result (e.g., "Dr. Raj Mishra").
+2. get_available_slots → Use the EXACT full doctor name returned from search_doctors result (e.g., "Dr. Raj Mishra"). Show only five slots when user ask for other slot for that day then show all the slots.
 3. book_appointment → ALWAYS ask the patient for their preferred meeting type (Online Video Call vs. In-Person Visit) and confirm the exact date and time with the patient before booking. You must pass the exact "date" and "time" strings returned by get_available_slots, and pass the selected "meetingType" ('ONLINE' for Video Call, 'IN_PERSON' for In-Person visit) into this tool!
 4. location → NEVER ask the user for a location or city. We operate a single-location hospital. Ignore location parameters.
+5. emergency: say I am an AI assistant, not a medical doctor. For life-threatening emergencies, please contact your local emergency services immediately.
 
 CONVERSATION FLOW:
 - If user mentions a doctor name → call search_doctors first.
@@ -485,8 +483,7 @@ FALLBACKS:
 - If no doctor found → DO NOT ask the user about spelling or uppercase/lowercase. The database is already case-insensitive. Simply state the doctor is not on staff and offer to show alternative doctors matching their specialty!
 - If no slots found → apologize and suggest trying a different date.
 - Never make up doctor names, slots, or fees.
-- Never tell fees in $, use ₹. consultationFee coming from database is in ₹.
-- When user say meetingType online or video call then go with ONLINE otherwise IN_PERSON`,
+- Never tell fees in $, use ₹. consultationFee coming from database is in ₹.`,
           tools: systemTools,
         });
 
