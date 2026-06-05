@@ -191,7 +191,6 @@ const appointmentSchema = new Schema(
     meetingType: {
       type: String,
       enum: ["IN_PERSON", "ONLINE", "PHONE"],
-      default: "IN_PERSON",
     },
     meetingPassword: {
       type: String,
