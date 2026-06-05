@@ -588,7 +588,7 @@ export const getChatHistory = asyncHandler(async (req, res) => {
       .filter((msg) => msg.role === "user" || msg.role === "model")
       .map((msg) => ({
         role: msg.role === "model" ? "assistant" : "user",
-        text: msg.parts[0]?.text || "",
+        text: msg.parts.map((p) => p.text || "").join(""),
       }))
       .filter((msg) => msg.text && msg.text.trim() !== "");
   }
