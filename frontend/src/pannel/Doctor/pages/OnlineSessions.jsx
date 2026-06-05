@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { CalendarRange, Calendar as CalendarIcon, Clock, Video, Building, RefreshCw, Loader2 } from 'lucide-react';
+import { Video, Calendar as CalendarIcon, Clock, RefreshCw, Loader2 } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchDoctorAppointments, updateDoctorAppointmentStatus } from '../../../features/appointments/doctorAppointmentSlice';
 import toast from 'react-hot-toast';
 import PrescriptionModal from '../components/Prescriptions/PrescriptionModal';
 import { useNavigate } from 'react-router-dom';
 
-const DoctorAppointments = () => {
+const OnlineSessions = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { appointments, isLoading } = useSelector(state => state.doctorAppointments);
@@ -30,7 +30,6 @@ const DoctorAppointments = () => {
     if (status === 'COMPLETED') {
       setActiveApt(apt);
       setIsModalOpen(true);
-      // Let React uncontrolled value remain as is until Redux syncs via proper payload handling in `handleIssuePrescription`
       e.target.value = apt.status; 
     } else if (status) {
       dispatch(updateDoctorAppointmentStatus({ appointmentId: apt._id, status }));
@@ -123,15 +122,18 @@ const DoctorAppointments = () => {
     return { show: true, isAllowed: true };
   };
 
+  // Filter appointments to show only ONLINE ones
+  const onlineAppointments = appointments.filter(apt => apt.meetingType === 'ONLINE');
+
   return (
     <div className="p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <CalendarRange className="w-8 h-8 text-blue-600" />
-            Appointments
+            <Video className="w-8 h-8 text-indigo-600" />
+            Online Sessions
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Manage your schedule and consultations</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Manage your online video consultations</p>
         </div>
         <button 
           onClick={handleRefresh} 
@@ -148,21 +150,17 @@ const DoctorAppointments = () => {
               <div className="p-12 flex justify-center w-full">
                 <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
               </div>
-            ) : appointments.length > 0 ? (
-              appointments.map((apt) => (
+            ) : onlineAppointments.length > 0 ? (
+              onlineAppointments.map((apt) => (
                 <div key={apt._id} className="flex flex-col md:flex-row md:items-center justify-between p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-blue-500/50 hover:shadow-sm transition-all bg-gray-50/50 dark:bg-gray-900/20">
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
-                      <CalendarIcon className="w-6 h-6" />
+                    <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                      <Video className="w-6 h-6" />
                     </div>
                     <div>
                       <h3 className="font-bold text-gray-900 dark:text-white">{apt.patientId?.name || apt.patientId?.fullname || "Unknown Patient"}</h3>
                       <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400 mt-1">
                         <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {new Date(apt.date).toLocaleDateString()} at {apt.timeSlots}</span>
-                        <span className="flex items-center gap-1">
-                          {apt.meetingType === 'ONLINE' ? <Video className="w-3.5 h-3.5" /> : <Building className="w-3.5 h-3.5" />} 
-                          {apt.meetingType || 'In-Person'}
-                        </span>
                       </div>
                     </div>
                   </div>
@@ -176,7 +174,7 @@ const DoctorAppointments = () => {
                     </span>
 
                     {/* Join WebRTC Video Consultation launcher */}
-                    {apt.status === 'CONFIRMED' && apt.meetingType === 'ONLINE' && (() => {
+                    {apt.status === 'CONFIRMED' && (() => {
                       const availability = getCallAvailability(apt);
                       if (!availability.show) return null;
                       return (
@@ -217,7 +215,7 @@ const DoctorAppointments = () => {
               ))
             ) : (
               <div className="p-8 text-center text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-xl">
-                No appointments found.
+                No online sessions scheduled.
               </div>
             )}
           </div>
@@ -236,4 +234,4 @@ const DoctorAppointments = () => {
   );
 };
 
-export default DoctorAppointments;
+export default OnlineSessions;

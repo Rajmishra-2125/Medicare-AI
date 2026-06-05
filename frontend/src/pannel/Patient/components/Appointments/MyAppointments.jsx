@@ -28,7 +28,6 @@ import {
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import appointmentService from "../../../../services/appointmentService";
-import paymentService from "../../../../services/paymentService";
 import toast from "react-hot-toast";
 import ReviewModal from "../Review/ReviewModal.jsx";
 import { useNavigate } from "react-router-dom";
@@ -39,7 +38,7 @@ import { useSessionStorage } from "../../../../hooks/useSessionStorage";
 import AppointmentRowSkeleton from "../../../../components/skeletons/AppointmentRowSkeleton";
 import EmptyState from "../../../../components/ui/EmptyState";
 
-function MyAppointments({ appointments = [], loading = false, error = null, onRefresh }) {
+function MyAppointments({ appointments = [], loading = false, onRefresh }) {
   const [selectedFilter, setSelectedFilter] = useSessionStorage("my_appointments_filter", "all"); // all, upcoming, completed, cancelled
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
@@ -57,13 +56,12 @@ function MyAppointments({ appointments = [], loading = false, error = null, onRe
     newSlotNumber: "",
     reason: "",
   });
-  const [expandedCard, setExpandedCard] = useState(null);
+  // expandedCard state removed to fix lint warning
   const today = new Date().toISOString().split("T")[0];
 
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewAppointment, setReviewAppointment] = useState(null);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentAppointment, setPaymentAppointment] = useState(null);
+  // showPaymentModal and paymentAppointment states removed to fix lint warning
   const navigate = useNavigate();
 
   // Tab State
@@ -93,6 +91,7 @@ function MyAppointments({ appointments = [], loading = false, error = null, onRe
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchLocalAppointments = async () => {
@@ -473,15 +472,78 @@ function MyAppointments({ appointments = [], loading = false, error = null, onRe
     return timeSlot || "TBD";
   };
 
-  const handlePaymentSuccess = (updatedAppointment) => {
-    setShowPaymentModal(false);
-    setPaymentAppointment(null);
-    if (onRefresh) {
-      onRefresh();
-    } else {
-      fetchLocalAppointments();
+  const getCallAvailability = (appointment) => {
+    if (!appointment || !appointment.date) return { show: false, isAllowed: false };
+    
+    // Check if it is the session day in Asia/Kolkata
+    const aptDate = new Date(appointment.date);
+    if (isNaN(aptDate.getTime())) return { show: false, isAllowed: false };
+
+    const formatOptions = { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit" };
+    const formatter = new Intl.DateTimeFormat("en-US", formatOptions);
+    
+    const todayStr = formatter.format(new Date());
+    const aptDateStr = formatter.format(aptDate);
+
+    if (aptDateStr !== todayStr) {
+      return { show: false, isAllowed: false };
     }
+
+    // It is the session day. Check time window.
+    const slotTimeStr = appointment.timeSlots || appointment.slotNumber || appointment.time;
+    if (!slotTimeStr) {
+      return { show: true, isAllowed: true };
+    }
+
+    const times = slotTimeStr.split("-");
+    const startTimeStr = times[0]?.trim();
+    const endTimeStr = times[1]?.trim() || times[0]?.trim();
+
+    const parseTimeToHoursMinutes = (tStr) => {
+      if (!tStr) return { hours: 0, minutes: 0 };
+      const parts = tStr.trim().split(/\s+/);
+      if (parts.length < 2) return { hours: 0, minutes: 0 };
+      const timeVal = parts[0];
+      const modifier = parts[1].toUpperCase();
+      let [hours, minutes] = timeVal.split(":").map(Number);
+      if (isNaN(hours) || isNaN(minutes)) return { hours: 0, minutes: 0 };
+
+      if (modifier === "PM" && hours !== 12) hours += 12;
+      if (modifier === "AM" && hours === 12) hours = 0;
+
+      return { hours, minutes };
+    };
+
+    const startInfo = parseTimeToHoursMinutes(startTimeStr);
+    const endInfo = parseTimeToHoursMinutes(endTimeStr);
+
+    const parts = formatter.formatToParts(new Date());
+    const year = parts.find(p => p.type === 'year').value;
+    const month = parts.find(p => p.type === 'month').value;
+    const day = parts.find(p => p.type === 'day').value;
+
+    const pad = (num) => String(num).padStart(2, '0');
+    
+    const startIso = `${year}-${pad(month)}-${pad(day)}T${pad(startInfo.hours)}:${pad(startInfo.minutes)}:00+05:30`;
+    const endIso = `${year}-${pad(month)}-${pad(day)}T${pad(endInfo.hours)}:${pad(endInfo.minutes)}:00+05:30`;
+
+    const startDateTime = new Date(startIso);
+    const endDateTime = new Date(endIso);
+
+    const now = new Date();
+    const allowedStartTime = new Date(startDateTime.getTime() - 15 * 60 * 1000);
+    const allowedEndTime = new Date(endDateTime.getTime() + 30 * 60 * 1000);
+
+    if (now > allowedEndTime) {
+      return { show: false, isAllowed: false };
+    }
+    if (now < allowedStartTime) {
+      return { show: true, isAllowed: false };
+    }
+    return { show: true, isAllowed: true };
   };
+
+  // handlePaymentSuccess removed to fix lint warning
 
 
     return (
@@ -654,7 +716,7 @@ function MyAppointments({ appointments = [], loading = false, error = null, onRe
                                       className="w-16 h-16 rounded-xl object-cover bg-gray-100 dark:bg-gray-700 shadow-sm"
                                   />
                                   <div className="absolute -bottom-1 -right-1 bg-white dark:bg-gray-800 rounded-full p-1 shadow-sm">
-                                      {appointment.type === 'Video Consultation' ? (
+                                      {(appointment.meetingType === 'ONLINE' || appointment.type === 'Video Consultation' || appointment.type === 'ONLINE') ? (
                                           <div className="bg-blue-100 dark:bg-blue-900/50 p-1 rounded-full">
                                               <Video className="w-3 h-3 text-blue-600 dark:text-blue-400" />
                                           </div>
@@ -674,7 +736,7 @@ function MyAppointments({ appointments = [], loading = false, error = null, onRe
                                       {appointment.doctorId?.specialization || appointment.specialty || "General Physician"}
                                   </p>
                                   <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 px-2 py-1 rounded-md w-fit">
-                                      {appointment.type === 'Video Consultation' ? 'Video Call' : 'In-Person Visit'}
+                                      {(appointment.meetingType === 'ONLINE' || appointment.type === 'Video Consultation' || appointment.type === 'ONLINE') ? 'Video Call' : 'In-Person Visit'}
                                   </div>
                               </div>
                           </div>
@@ -731,17 +793,30 @@ function MyAppointments({ appointments = [], loading = false, error = null, onRe
                                       )}
 
                                       {/* Video Consultation Call launcher */}
-                                      {appointment.status?.toUpperCase() === 'CONFIRMED' && (
-                                          <button 
-                                              onClick={() => {
-                                                  navigate(`/consultation/${appointment._id}`);
-                                              }}
-                                              className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-all animate-pulse cursor-pointer"
-                                              title="Join Video Room"
-                                          >
-                                              <Video className="w-5 h-5" />
-                                          </button>
-                                      )}
+                                      {appointment.status?.toUpperCase() === 'CONFIRMED' && 
+                                       (appointment.meetingType === 'ONLINE' || appointment.type === 'Video Consultation' || appointment.type === 'ONLINE') && (() => {
+                                          const availability = getCallAvailability(appointment);
+                                          if (!availability.show) return null;
+                                          return (
+                                              <button 
+                                                  onClick={() => {
+                                                      if (!availability.isAllowed) {
+                                                          toast.error("You can try one 15min before when session started");
+                                                          return;
+                                                      }
+                                                      navigate(`/consultation/${appointment._id}`);
+                                                  }}
+                                                  className={`p-2 rounded-lg transition-all cursor-pointer ${
+                                                      availability.isAllowed 
+                                                      ? "text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 animate-pulse" 
+                                                      : "text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 opacity-60 cursor-not-allowed"
+                                                  }`}
+                                                  title="Join Video Room"
+                                              >
+                                                  <Video className="w-5 h-5" />
+                                              </button>
+                                          );
+                                      })()}
                                       
                                       {(appointment.status?.toUpperCase() === 'PENDING' || appointment.status?.toUpperCase() === 'CONFIRMED') && (
                                           <button 

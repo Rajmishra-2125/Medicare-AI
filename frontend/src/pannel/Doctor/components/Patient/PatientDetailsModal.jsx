@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, Calendar, Clock, Activity, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 
-const PatientDetailsModal = ({ isOpen, onClose, patient, appointments }) => {
+const PatientDetailsModal = ({ isOpen, onClose, patient, appointments, onStatusChange }) => {
   if (!isOpen || !patient) return null;
 
   const getStatusBadge = (status) => {
@@ -83,7 +83,23 @@ const PatientDetailsModal = ({ isOpen, onClose, patient, appointments }) => {
                                 <span className="text-gray-400 font-normal">at</span>
                                 {apt.timeSlots || apt.slotId?.timeSlots || 'TBD'}
                             </div>
-                            {getStatusBadge(apt.status)}
+                            <div className="flex items-center gap-2">
+                                {getStatusBadge(apt.status)}
+                                {onStatusChange && (
+                                    <select 
+                                      className="text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white outline-none cursor-pointer"
+                                      onChange={(e) => onStatusChange(e, apt)}
+                                      value={apt.status}
+                                      disabled={['CANCELLED', 'COMPLETED', 'NO_SHOW'].includes(apt.status)}
+                                    >
+                                      <option value="" disabled>Update Status</option>
+                                      <option value="PENDING" disabled>Pending</option>
+                                      <option value="CONFIRMED">Confirm</option>
+                                      <option value="COMPLETED">Mark Completed</option>
+                                      <option value="CANCELLED">Cancel</option>
+                                    </select>
+                                )}
+                            </div>
                         </div>
                         
                         <div className="flex items-start gap-2 mt-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700/50">

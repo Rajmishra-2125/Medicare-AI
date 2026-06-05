@@ -4,6 +4,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import { Appointment } from "./models/appointment.models.js";
 import { Doctor } from "./models/doctor.models.js";
+import { Notification } from "./models/notification.models.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -21,6 +22,7 @@ const io = new Server(server, {
 });
 
 const userSocketMap = {}; // {userId: socketId}
+const lastJoinNotificationTime = {}; // { roomId-userId: timestamp }
 const socketEventCounts = new Map(); // {socketId: eventCount}
 
 // Reset rate limiting counters every minute
@@ -116,10 +118,129 @@ io.on("connection", (socket) => {
         return;
       }
 
+      // Time-window constraint enforcement on join-room
+      const aptDate = new Date(appointment.date);
+      if (isNaN(aptDate.getTime())) {
+        socket.emit("webrtc:error", { message: "Invalid appointment date" });
+        return;
+      }
+
+      const formatOptions = { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit" };
+      const formatter = new Intl.DateTimeFormat("en-US", formatOptions);
+      
+      const todayStr = formatter.format(new Date());
+      const aptDateStr = formatter.format(aptDate);
+
+      if (aptDateStr !== todayStr) {
+        socket.emit("webrtc:error", { message: "This session is not scheduled for today" });
+        return;
+      }
+
+      const slotTimeStr = appointment.timeSlots || appointment.slotNumber || appointment.time;
+      if (slotTimeStr) {
+        const times = slotTimeStr.split("-");
+        const startTimeStr = times[0]?.trim();
+        const endTimeStr = times[1]?.trim() || times[0]?.trim();
+
+        const parseTimeToHoursMinutes = (tStr) => {
+          if (!tStr) return { hours: 0, minutes: 0 };
+          const parts = tStr.trim().split(/\s+/);
+          if (parts.length < 2) return { hours: 0, minutes: 0 };
+          const timeVal = parts[0];
+          const modifier = parts[1].toUpperCase();
+          let [hours, minutes] = timeVal.split(":").map(Number);
+          if (isNaN(hours) || isNaN(minutes)) return { hours: 0, minutes: 0 };
+
+          if (modifier === "PM" && hours !== 12) hours += 12;
+          if (modifier === "AM" && hours === 12) hours = 0;
+
+          return { hours, minutes };
+        };
+
+        const startInfo = parseTimeToHoursMinutes(startTimeStr);
+        const endInfo = parseTimeToHoursMinutes(endTimeStr);
+
+        const parts = formatter.formatToParts(new Date());
+        const year = parts.find(p => p.type === 'year').value;
+        const month = parts.find(p => p.type === 'month').value;
+        const day = parts.find(p => p.type === 'day').value;
+
+        const pad = (num) => String(num).padStart(2, '0');
+        
+        const startIso = `${year}-${pad(month)}-${pad(day)}T${pad(startInfo.hours)}:${pad(startInfo.minutes)}:00+05:30`;
+        const endIso = `${year}-${pad(month)}-${pad(day)}T${pad(endInfo.hours)}:${pad(endInfo.minutes)}:00+05:30`;
+
+        const startDateTime = new Date(startIso);
+        const endDateTime = new Date(endIso);
+
+        const now = new Date();
+        const allowedStartTime = new Date(startDateTime.getTime() - 15 * 60 * 1000);
+        const allowedEndTime = new Date(endDateTime.getTime() + 30 * 60 * 1000);
+
+        if (now > allowedEndTime) {
+          socket.emit("webrtc:error", { message: "This session has ended" });
+          return;
+        }
+        if (now < allowedStartTime) {
+          const errMsg = isPatient 
+            ? "You can try one 15min before when session started" 
+            : "This session starts in the future. You can join 15 minutes before the start time.";
+          socket.emit("webrtc:error", { message: errMsg });
+          return;
+        }
+      }
+
       socket.join(roomId);
       console.log(`📹 User ${userId} (${socket.id}) joined video room: ${roomId}`);
       // Notify other users in the room
       socket.to(roomId).emit("webrtc:user-joined", { userId, socketId: socket.id });
+
+      // Real-time Joining Notification logic
+      const nowTime = Date.now();
+      const notificationKey = `${roomId}-${currentUserId}`;
+      const lastSent = lastJoinNotificationTime[notificationKey];
+
+      if (!lastSent || nowTime - lastSent > 30000) {
+        lastJoinNotificationTime[notificationKey] = nowTime;
+        
+        if (isPatient) {
+          const doctorUserId = doctorDoc.doctorId.toString();
+          const notificationData = {
+            userId: doctorUserId,
+            title: "Session Waiting",
+            message: "Your patient is waiting for Session. Join Now",
+            type: "ALERT",
+            relatedId: appointment._id,
+          };
+          try {
+            await Notification.create(notificationData);
+          } catch (e) {
+            console.error("Failed to save patient waiting notification:", e);
+          }
+          const doctorSocketId = userSocketMap[doctorUserId];
+          if (doctorSocketId) {
+            io.to(doctorSocketId).emit("notification", notificationData);
+          }
+        } else if (isDoctor) {
+          const patientUserId = appointment.patientId.toString();
+          const notificationData = {
+            userId: patientUserId,
+            title: "Session Waiting",
+            message: "Your doctor is waiting for Session. Join Now",
+            type: "ALERT",
+            relatedId: appointment._id,
+          };
+          try {
+            await Notification.create(notificationData);
+          } catch (e) {
+            console.error("Failed to save doctor waiting notification:", e);
+          }
+          const patientSocketId = userSocketMap[patientUserId];
+          if (patientSocketId) {
+            io.to(patientSocketId).emit("notification", notificationData);
+          }
+        }
+      }
     } catch (err) {
       console.error("WebRTC Join Room Error:", err);
       socket.emit("webrtc:error", { message: "Server error during room joining" });

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import toast from "react-hot-toast";
@@ -182,36 +182,7 @@ function Appointments() {
     fetchSlots();
   }, [formData.selectedDoctor, formData.appointmentDate, allDoctors]);
 
-  // Doctors list for dropdown - will be fetched from backend
-  const [doctors, setDoctors] = useState([
-    { name: "Dr. Sarah Smith", specialty: "Cardiology", username: "sarahsmith" },
-    { name: "Dr. Michael Johnson", specialty: "Neurology", username: "michaeljohnson" },
-    { name: "Dr. Emily Lee", specialty: "Dermatology", username: "emilylee" },
-    { name: "Dr. James Wilson", specialty: "Orthopedics", username: "jameswilson" },
-    { name: "Dr. Olivia Martinez", specialty: "Pediatrics", username: "oliviamartinez" },
-    { name: "Dr. David Chen", specialty: "Ophthalmology", username: "davidchen" },
-  ]);
-
-  // Fetch doctors on mount
-  useEffect(() => {
-    const fetchDoctors = async () => {
-      try {
-        const data = await doctorService.getAllDoctors();
-        if (data && data.length > 0) {
-          const formattedDoctors = data.map((doc) => ({
-            name: doc.fullName,
-            specialty: doc.specialty,
-            username: doc.username,
-          }));
-          setDoctors(formattedDoctors);
-        }
-      } catch (error) {
-        console.error("Failed to fetch doctors:", error);
-        // Keep the default doctors if fetch fails
-      }
-    };
-    fetchDoctors();
-  }, []);
+  // Unused duplicate doctors fetching logic removed to fix lint warnings
 
   // Handle form input changes
   const handleInputChange = (e) => {

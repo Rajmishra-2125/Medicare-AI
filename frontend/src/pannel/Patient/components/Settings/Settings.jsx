@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { User, Lock, Bell, Camera, Save, Mail, Phone } from "lucide-react";
-import { useTheme } from "../../../../context/ThemeContext";
 import { useSelector, useDispatch } from "react-redux";
 import {
   updateUserPersonalDetails,
@@ -10,7 +9,6 @@ import {
 import toast from "react-hot-toast";
 
 const PatientSettings = () => {
-  const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState("profile");
 
   const dispatch = useDispatch();

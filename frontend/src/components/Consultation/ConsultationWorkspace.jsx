@@ -205,6 +205,11 @@ const ConsultationWorkspace = () => {
             remoteVideoRef.current.srcObject = null;
           }
         });
+
+        socket.on("webrtc:error", ({ message }) => {
+          toast.error(message);
+          navigate(user?.role === "DOCTOR" ? "/doctor/dashboard" : "/patient/home");
+        });
       } catch (err) {
         console.error("Camera access or WebRTC error:", err);
         toast.error("Failed to access camera or microphone. Please check permissions.");
@@ -223,6 +228,7 @@ const ConsultationWorkspace = () => {
         socket.off("webrtc:answer");
         socket.off("webrtc:ice-candidate");
         socket.off("webrtc:user-left");
+        socket.off("webrtc:error");
       }
       hangUpCall();
     };

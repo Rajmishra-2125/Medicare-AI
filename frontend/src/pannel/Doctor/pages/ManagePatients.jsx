@@ -1,19 +1,64 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Search, Download, HeartPulse, UserCircle, Loader2 } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchDoctorPatients, fetchDoctorAppointments } from '../../../features/appointments/doctorAppointmentSlice';
+import { fetchDoctorPatients, fetchDoctorAppointments, updateDoctorAppointmentStatus } from '../../../features/appointments/doctorAppointmentSlice';
 import PatientDetailsModal from '../components/Patient/PatientDetailsModal';
+import PrescriptionModal from '../components/Prescriptions/PrescriptionModal';
+import toast from 'react-hot-toast';
 
 const DoctorPatients = () => {
   const dispatch = useDispatch();
   const { patients, appointments, isLoading } = useSelector((state) => state.doctorAppointments);
   const [search, setSearch] = useState("");
   const [selectedPatient, setSelectedPatient] = useState(null);
+  
+  const [isPrescriptionModalOpen, setIsPrescriptionModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeApt, setActiveApt] = useState(null);
 
   useEffect(() => {
     dispatch(fetchDoctorPatients());
     dispatch(fetchDoctorAppointments());
   }, [dispatch]);
+
+  const handleStatusChange = (e, apt) => {
+    const status = e.target.value;
+    if (status === 'COMPLETED') {
+      setActiveApt(apt);
+      setIsPrescriptionModalOpen(true);
+      e.target.value = apt.status; 
+    } else if (status) {
+      dispatch(updateDoctorAppointmentStatus({ appointmentId: apt._id, status }));
+    }
+  };
+
+  const handleIssuePrescription = async (data) => {
+    setIsSubmitting(true);
+    try {
+      await dispatch(updateDoctorAppointmentStatus({ appointmentId: data.appointmentId, status: "COMPLETED", prescription: data.prescription })).unwrap();
+      toast.success("Success! Patient discharged and files appended.");
+      dispatch(fetchDoctorAppointments());
+      setIsPrescriptionModalOpen(false);
+      setActiveApt(null);
+    } catch (e) {
+      toast.error(e || "Failed to generate prescription successfully");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Filter appointments to only show IN_PERSON (non-ONLINE) ones
+  const inPersonAppointments = appointments.filter(a => a.meetingType !== 'ONLINE');
+
+  // Filter patients to only show those who have at least one IN_PERSON appointment
+  const inPersonPatientIds = new Set(
+    inPersonAppointments.map(a => a.patientId?._id || a.patientId)
+  );
+
+  const filteredPatients = patients.filter(patient => 
+    inPersonPatientIds.has(patient._id) &&
+    patient.name?.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="p-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
@@ -62,7 +107,7 @@ const DoctorPatients = () => {
                   </td>
                 </tr>
               ) : (
-                patients.filter(p => p.name?.toLowerCase().includes(search.toLowerCase())).map((patient) => (
+                filteredPatients.map((patient) => (
                   <tr key={patient._id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors">
                     <td className="p-4 pl-6">
                       <div className="flex items-center gap-3">
@@ -103,7 +148,7 @@ const DoctorPatients = () => {
               )}
             </tbody>
           </table>
-          {!isLoading && patients.filter(p => p.name?.toLowerCase().includes(search.toLowerCase())).length === 0 && (
+          {!isLoading && filteredPatients.length === 0 && (
             <div className="p-8 text-center text-gray-500 dark:text-gray-400">
               No patients found matching your search.
             </div>
@@ -115,7 +160,17 @@ const DoctorPatients = () => {
         isOpen={!!selectedPatient}
         onClose={() => setSelectedPatient(null)}
         patient={selectedPatient}
-        appointments={appointments.filter(a => a.patientId?._id === selectedPatient?._id)}
+        appointments={inPersonAppointments.filter(a => (a.patientId?._id === selectedPatient?._id || a.patientId === selectedPatient?._id))}
+        onStatusChange={handleStatusChange}
+      />
+
+      <PrescriptionModal 
+        isOpen={isPrescriptionModalOpen}
+        onClose={() => { setIsPrescriptionModalOpen(false); setActiveApt(null); }}
+        onSubmit={handleIssuePrescription}
+        defaultAppointment={activeApt}
+        availableAppointments={appointments}
+        isSubmitting={isSubmitting}
       />
     </div>
   );

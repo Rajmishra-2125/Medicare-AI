@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from "react";
-import doctorService from "../../../../services/doctorService";
 import DoctorCardSkeleton from "../../../../components/skeletons/DoctorCardSkeleton";
 import EmptyState from "../../../../components/ui/EmptyState";
 import { Link } from "react-router-dom";
@@ -27,11 +26,11 @@ import {
 import DoctorReviewsModal from "./DoctorReviewsModal.jsx";
 
 import { useDispatch, useSelector } from "react-redux";
-import { getAllDoctors, searchDoctors } from "../../../../features/doctors/DoctorSlice";
+import { searchDoctors } from "../../../../features/doctors/DoctorSlice";
 
 function Doctors() {
   const dispatch = useDispatch();
-  const { doctors, isLoading, isError, message } = useSelector(
+  const { doctors, isLoading } = useSelector(
     (state) => state.doctor
   );
 

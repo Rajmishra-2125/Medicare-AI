@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from "react-redux";
 import io from "socket.io-client";
 import { addNotification } from "../features/notifications/notificationSlice";
 import { getAccessToken } from "../services/api";
+import toast from "react-hot-toast";
 
 const SocketContext = createContext();
 
@@ -49,6 +50,19 @@ export const SocketProvider = ({ children }) => {
             `hasSeenWelcome_${userId}`,
             "true"
           );
+        }
+
+        // Display toast popup for real-time wait alerts
+        if (data.type === "ALERT" || (data.message && data.message.includes("waiting for Session"))) {
+          toast.success(data.message, {
+            duration: 8000,
+            style: {
+              border: "1px solid #10B981",
+              padding: "16px",
+              color: "#065F46",
+              background: "#ECFDF5",
+            },
+          });
         }
 
         // Send Notification to Global Redux State (Bell Icon) instead of generic toaster popups

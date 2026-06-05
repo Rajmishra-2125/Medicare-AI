@@ -28,16 +28,11 @@ import appointmentService from "../../../services/appointmentService";
 function MyAppointments({
   appointments = [],
   loading = false,
-  error = null,
   onRefresh,
 }) {
   const [selectedFilter, setSelectedFilter] = useState("all"); // all, upcoming, completed, cancelled
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedAppointment, setSelectedAppointment] = useState(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancellingId, setCancellingId] = useState(null);
-  const [expandedCard, setExpandedCard] = useState(null);
 
   // Standalone mode state
   const [localAppointments, setLocalAppointments] = useState([]);
@@ -49,6 +44,7 @@ function MyAppointments({
     if (isStandalone) {
       fetchLocalAppointments();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchLocalAppointments = async () => {
@@ -129,8 +125,6 @@ function MyAppointments({
 
       // Refresh appointments
       if (onRefresh) await onRefresh();
-      setShowCancelModal(false);
-      setSelectedAppointment(null);
     } catch (err) {
       console.error("Error cancelling appointment:", err);
       // alert("Failed to cancel appointment. Please try again.");

@@ -7,12 +7,13 @@ import {
   FileText,
   UserCircle,
   Settings,
+  Video,
 } from "lucide-react";
 
 const Sidebar = ({ isCollapsed, setIsSidebarCollapsed }) => {
   const navItems = [
     { name: "Dashboard", path: "/doctor/dashboard", icon: LayoutDashboard },
-    { name: "Appointments", path: "/doctor/appointments", icon: CalendarCheck },
+    { name: "Online Sessions", path: "/doctor/online-sessions", icon: Video },
     { name: "My Patients", path: "/doctor/patients", icon: Users },
     { name: "Prescriptions", path: "/doctor/prescriptions", icon: FileText },
     { name: "Profile", path: "/doctor/profile", icon: UserCircle },
