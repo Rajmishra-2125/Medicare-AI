@@ -361,7 +361,7 @@ const applyForBooking = asyncHandler(async (req, res) => {
       reason: reason,
       consultationFee: fee,
       timeSlots: `${bookedSlot.startTime} - ${bookedSlot.endTime}`,
-      meetingType: meetingType || "IN_PERSON",
+      meetingType: meetingType,
     });
 
     // Update Doctor Stats (New Appointment Count)
