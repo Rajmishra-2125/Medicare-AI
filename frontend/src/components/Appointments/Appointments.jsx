@@ -196,35 +196,6 @@ function Appointments() {
     }
   }, [location.pathname]);
 
-  // Doctors list for dropdown - will be fetched from backend
-  const [doctors, setDoctors] = useState([
-    {
-      name: "Dr. Sarah Smith",
-      specialty: "Cardiology",
-      username: "sarahsmith",
-    },
-    {
-      name: "Dr. Michael Johnson",
-      specialty: "Neurology",
-      username: "michaeljohnson",
-    },
-    { name: "Dr. Emily Lee", specialty: "Dermatology", username: "emilylee" },
-    {
-      name: "Dr. James Wilson",
-      specialty: "Orthopedics",
-      username: "jameswilson",
-    },
-    {
-      name: "Dr. Olivia Martinez",
-      specialty: "Pediatrics",
-      username: "oliviamartinez",
-    },
-    {
-      name: "Dr. David Chen",
-      specialty: "Ophthalmology",
-      username: "davidchen",
-    },
-  ]);
 
   // Fetch doctors on mount
   useEffect(() => {
@@ -363,7 +334,7 @@ function Appointments() {
           : bookedAppointment?.timeSlots || formData.appointmentTime,
         type:
           formData.appointmentType === "video"
-            ? "Video Consultation"
+            ? "ONLINE"
             : "In-Person",
         status: bookedAppointment?.status || "CONFIRMED",
       });
@@ -390,7 +361,7 @@ function Appointments() {
       specialty: "",
       appointmentDate: "",
       appointmentTime: "",
-      appointmentType: "in-person",
+      appointmentType: "",
       reason: "",
     });
     setBookingSuccess(false);
