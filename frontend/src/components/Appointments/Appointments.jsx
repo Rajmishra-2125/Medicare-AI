@@ -335,7 +335,7 @@ function Appointments() {
         type:
           formData.appointmentType === "video"
             ? "ONLINE"
-            : "In-Person",
+            : "IN_PERSON",
         status: bookedAppointment?.status || "CONFIRMED",
       });
 
