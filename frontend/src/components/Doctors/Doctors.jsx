@@ -60,7 +60,7 @@ function Doctors() {
       specialty: doc.specialization || "General",
       subSpecialty: doc.qualification || "",
       experience: parseInt(doc.experience) || 0,
-      rating: parseFloat(doc.rating).toFixed(1) || 0,
+      rating: (doc.rating && !isNaN(parseFloat(doc.rating))) ? parseFloat(doc.rating).toFixed(1) : "0.0",
       reviews: doc.reviewCount || 0,
       patients: doc.totalAppointments || 0,
       education: doc.qualification || "Medical Degree",

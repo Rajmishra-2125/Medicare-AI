@@ -23,7 +23,10 @@ const addReview = asyncHandler(async (req, res) => {
   });
 
   if (!appointment) {
-    throw new ApiError(400, "Completed appointment not found or does not belong to you.");
+    throw new ApiError(
+      400,
+      "Completed appointment not found or does not belong to you."
+    );
   }
 
   // Check if appointment is already reviewed
@@ -69,7 +72,7 @@ const getDoctorReviews = asyncHandler(async (req, res) => {
 
   // Use aggregations or simple find
   const reviews = await Review.find({ doctorId: doctorId })
-    .populate("patientId", "fullName avatar") // Show reviwer details
+    .populate("patientId", "fullname") // Show reviewer details
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(parseInt(limit));

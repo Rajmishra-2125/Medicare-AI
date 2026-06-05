@@ -7,7 +7,10 @@ import { getCookieOptions } from "../controllers/auth.controllers.js";
 
 export const verifyJWT = asyncHandler(async (req, res, next) => {
   // Prevent caching of protected/authenticated states
-  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, proxy-revalidate"
+  );
   res.setHeader("Pragma", "no-cache");
   res.setHeader("Expires", "0");
 
@@ -41,13 +44,15 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
         process.env.REFRESH_TOKEN_SECRET
       );
 
-      const user = await User.findById(decodedToken?._id).select("+refreshToken");
+      const user = await User.findById(decodedToken?._id).select(
+        "+refreshToken"
+      );
 
       // Verify session in database (standard or grace period check)
       let activeSession = await Session.findOne({
         refreshToken: incomingRefreshToken,
         isActive: true,
-        expiresAt: { $gt: new Date() }
+        expiresAt: { $gt: new Date() },
       });
 
       let isGracePeriod = false;
@@ -59,7 +64,7 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
           oldRefreshToken: incomingRefreshToken,
           isActive: true,
           rotatedAt: { $gt: graceThreshold },
-          expiresAt: { $gt: new Date() }
+          expiresAt: { $gt: new Date() },
         });
         if (activeSession) {
           isGracePeriod = true;
@@ -83,7 +88,9 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
         activeSession.oldRefreshToken = incomingRefreshToken;
         activeSession.refreshToken = refreshTokenObj;
         activeSession.rotatedAt = new Date();
-        activeSession.expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        activeSession.expiresAt = new Date(
+          Date.now() + 30 * 24 * 60 * 60 * 1000
+        );
         activeSession.lastUsedAt = new Date();
         await activeSession.save();
 

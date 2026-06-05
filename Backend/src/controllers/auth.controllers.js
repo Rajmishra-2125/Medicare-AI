@@ -310,7 +310,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     let activeSession = await Session.findOne({
       refreshToken: incomingRefreshToken,
       isActive: true,
-      expiresAt: { $gt: new Date() }
+      expiresAt: { $gt: new Date() },
     });
 
     let isGracePeriod = false;
@@ -322,7 +322,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         oldRefreshToken: incomingRefreshToken,
         isActive: true,
         rotatedAt: { $gt: graceThreshold },
-        expiresAt: { $gt: new Date() }
+        expiresAt: { $gt: new Date() },
       });
       if (activeSession) {
         isGracePeriod = true;
@@ -363,13 +363,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       .status(200)
       .cookie("accessToken", accessToken, options)
       .cookie("refreshToken", refreshToken, options)
-      .json(
-        new ApiResponse(
-          200,
-          { accessToken },
-          "access token is refreshed"
-        )
-      );
+      .json(new ApiResponse(200, { accessToken }, "access token is refreshed"));
   } catch (error) {
     throw new ApiError(401, error?.message || "Invalid refresh token");
   }
@@ -532,7 +526,7 @@ const verifyEmailOTP = asyncHandler(async (req, res) => {
 
   try {
     const escapedName = escapeHTML(fullname);
-    
+
     user = await createUserAccount({
       fullname: escapedName,
       email: normalizedEmail,
@@ -542,7 +536,6 @@ const verifyEmailOTP = asyncHandler(async (req, res) => {
       dateOfBirth: DOB,
       isEmailVerified: true,
     });
-    
 
     // Send Welcome Email asynchronously
     try {

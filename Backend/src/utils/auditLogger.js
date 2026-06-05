@@ -2,7 +2,7 @@ import { AuditLog } from "../models/auditLog.models.js";
 
 /**
  * Creates an immutable HIPAA-compliant audit log entry in the database.
- * 
+ *
  * @param {Object} req - Express request object (to extract IP, user agent, performer info)
  * @param {Object} logData - Log entry details
  * @param {string} logData.action - Action name (e.g. READ_PHI, WRITE_PHI, AUTH_LOGIN)
@@ -14,7 +14,11 @@ import { AuditLog } from "../models/auditLog.models.js";
  */
 export const logAudit = async (req, logData) => {
   try {
-    const ipAddress = req.ip || req.headers["x-forwarded-for"] || req.socket.remoteAddress || "0.0.0.0";
+    const ipAddress =
+      req.ip ||
+      req.headers["x-forwarded-for"] ||
+      req.socket.remoteAddress ||
+      "0.0.0.0";
     const userAgent = req.headers["user-agent"] || "";
 
     const performedBy = req.user?._id;

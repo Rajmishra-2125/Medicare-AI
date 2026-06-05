@@ -49,9 +49,14 @@ export const createOrder = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Appointment not found");
   }
 
-  const patientIdStr = appointment.patientId._id ? appointment.patientId._id.toString() : appointment.patientId.toString();
+  const patientIdStr = appointment.patientId._id
+    ? appointment.patientId._id.toString()
+    : appointment.patientId.toString();
   if (patientIdStr !== req.user._id.toString()) {
-    throw new ApiError(403, "You are not authorized to create a payment order for this appointment");
+    throw new ApiError(
+      403,
+      "You are not authorized to create a payment order for this appointment"
+    );
   }
 
   if (appointment.paymentStatus === "PAID") {
@@ -98,18 +103,16 @@ export const createOrder = asyncHandler(async (req, res) => {
     appointment.cashfreeSessionId = response.data.payment_session_id;
     await appointment.save();
 
-    return res
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          {
-            ...response.data,
-            cf_environment: process.env.CASHFREE_ENVIRONMENT || "SANDBOX"
-          },
-          "Payment order created successfully"
-        )
-      );
+    return res.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          ...response.data,
+          cf_environment: process.env.CASHFREE_ENVIRONMENT || "SANDBOX",
+        },
+        "Payment order created successfully"
+      )
+    );
   } catch (error) {
     console.error(
       "Cashfree Order Creation Error:",
@@ -130,7 +133,7 @@ export const verifyPayment = asyncHandler(async (req, res) => {
   const appointment = await Appointment.findById(appointmentId)
     .populate({
       path: "doctorId",
-      populate: { path: "doctorId" }
+      populate: { path: "doctorId" },
     })
     .populate("patientId");
 
@@ -139,14 +142,25 @@ export const verifyPayment = asyncHandler(async (req, res) => {
   }
 
   // IDOR check: Verify the appointment belongs to the logged in patient
-  const patientIdStr = appointment.patientId._id ? appointment.patientId._id.toString() : appointment.patientId.toString();
+  const patientIdStr = appointment.patientId._id
+    ? appointment.patientId._id.toString()
+    : appointment.patientId.toString();
   if (patientIdStr !== req.user._id.toString()) {
-    throw new ApiError(403, "You are not authorized to verify payment for this appointment");
+    throw new ApiError(
+      403,
+      "You are not authorized to verify payment for this appointment"
+    );
   }
 
   // Order binding verify
-  if (!appointment.cashfreeOrderId || appointment.cashfreeOrderId !== order_id) {
-    throw new ApiError(400, "Invalid payment order details for this appointment");
+  if (
+    !appointment.cashfreeOrderId ||
+    appointment.cashfreeOrderId !== order_id
+  ) {
+    throw new ApiError(
+      400,
+      "Invalid payment order details for this appointment"
+    );
   }
 
   const cashfree = getCashfreeInstance();
@@ -196,8 +210,10 @@ export const verifyPayment = asyncHandler(async (req, res) => {
         // Dispatch Patient Email in the background
         if (patientUser) {
           const patientNameEscaped = escapeHTML(patientUser.fullname);
-          const doctorNameEscaped = escapeHTML(doctor.doctorDetails?.fullname || doctor.doctor);
-          
+          const doctorNameEscaped = escapeHTML(
+            doctor.doctorDetails?.fullname || doctor.doctor
+          );
+
           sendEmail({
             email: patientUser.email,
             subject: "Payment Received & Appointment Confirmed - MediCare",
@@ -215,13 +231,22 @@ export const verifyPayment = asyncHandler(async (req, res) => {
                           </div>
                           <p style="font-size: 14px; color: #64748b; text-align: center;">Thank you for choosing MediCare!</p>
                         </div>`,
-          }).catch(err => console.error("Failed to send patient confirmation email asynchronously:", err));
+          }).catch((err) =>
+            console.error(
+              "Failed to send patient confirmation email asynchronously:",
+              err
+            )
+          );
         }
 
         // Dispatch Doctor Email in the background
         if (doctorUser) {
-          const doctorNameEscaped = escapeHTML(doctor.doctorDetails?.fullname || doctor.doctor);
-          const patientNameEscaped = escapeHTML(patientUser?.fullname || "Patient");
+          const doctorNameEscaped = escapeHTML(
+            doctor.doctorDetails?.fullname || doctor.doctor
+          );
+          const patientNameEscaped = escapeHTML(
+            patientUser?.fullname || "Patient"
+          );
           const reasonEscaped = escapeHTML(appointment.reason);
 
           sendEmail({
@@ -239,7 +264,12 @@ export const verifyPayment = asyncHandler(async (req, res) => {
                             <p style="margin: 5px 0; color: #166534;"><strong>Reason for Visit:</strong> ${reasonEscaped}</p>
                           </div>
                         </div>`,
-          }).catch(err => console.error("Failed to send doctor notification email asynchronously:", err));
+          }).catch((err) =>
+            console.error(
+              "Failed to send doctor notification email asynchronously:",
+              err
+            )
+          );
         }
       } catch (emailError) {
         console.error("Email Dispatch Error After Payment:", emailError);

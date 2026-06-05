@@ -74,8 +74,21 @@ export const getDoctorAnalytics = asyncHandler(async (req, res) => {
 
   // Generate continuous list of past 6 months to ensure zero-revenue months are represented
   const monthsList = [];
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  
+  const monthNames = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+
   for (let i = 5; i >= 0; i--) {
     const d = new Date();
     d.setMonth(d.getMonth() - i);
@@ -101,7 +114,9 @@ export const getDoctorAnalytics = asyncHandler(async (req, res) => {
   // 3. Overall Performance Indicators
   const appointmentCompletionRate =
     doctor.totalAppointments > 0
-      ? Math.round((doctor.completedAppointments / doctor.totalAppointments) * 100)
+      ? Math.round(
+          (doctor.completedAppointments / doctor.totalAppointments) * 100
+        )
       : 0;
 
   const analyticsData = {

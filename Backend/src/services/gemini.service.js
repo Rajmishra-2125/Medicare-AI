@@ -20,7 +20,9 @@ class GeminiService {
     // 1. Load keys from comma-separated GEMINI_API_KEYS if present
     let possibleKeys = [];
     if (process.env.GEMINI_API_KEYS) {
-      possibleKeys = process.env.GEMINI_API_KEYS.split(",").map((k) => k.trim());
+      possibleKeys = process.env.GEMINI_API_KEYS.split(",").map((k) =>
+        k.trim()
+      );
     }
 
     // 2. Load explicitly numbered keys from .env and combine

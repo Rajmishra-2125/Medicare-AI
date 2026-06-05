@@ -9,19 +9,20 @@ export const validateEnvironment = () => {
     "REFRESH_TOKEN_SECRET",
     "CORS_ORIGIN",
     "CASHFREE_APP_ID",
-    "CASHFREE_SECRET_KEY"
+    "CASHFREE_SECRET_KEY",
   ];
 
   const missing = [];
-  
-  criticalKeys.forEach(key => {
+
+  criticalKeys.forEach((key) => {
     if (!process.env[key] || process.env[key].trim() === "") {
       missing.push(key);
     }
   });
 
   // Check for at least one Gemini API key: either the list variable or key 1
-  const geminiKeys = process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY_1;
+  const geminiKeys =
+    process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY_1;
   if (!geminiKeys || geminiKeys.trim() === "") {
     missing.push("GEMINI_API_KEYS (or GEMINI_API_KEY_1)");
   }
@@ -32,15 +33,19 @@ export const validateEnvironment = () => {
     console.error("========================================================");
     console.error("The server cannot boot because the following environment");
     console.error("variables are missing or empty:\n");
-    
-    missing.forEach(key => {
+
+    missing.forEach((key) => {
       console.error(`   👉  ${key}`);
     });
-    
-    console.error("\nPlease check your .env file or local orchestration secrets.");
-    console.error("Server is shutting down immediately to prevent runtime faults.");
+
+    console.error(
+      "\nPlease check your .env file or local orchestration secrets."
+    );
+    console.error(
+      "Server is shutting down immediately to prevent runtime faults."
+    );
     console.error("========================================================\n");
-    
+
     process.exit(1);
   } else {
     console.log("⭐ Environment variables validated successfully.");

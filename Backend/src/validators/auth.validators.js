@@ -2,7 +2,10 @@ import { z } from "zod";
 
 export const registerSchema = {
   body: z.object({
-    username: z.string().min(3, "Username must be at least 3 characters").max(30),
+    username: z
+      .string()
+      .min(3, "Username must be at least 3 characters")
+      .max(30),
     email: z.string().email("Invalid email address"),
     password: z.string().min(6, "Password must be at least 6 characters"),
     fullname: z.string().min(2, "Fullname must be at least 2 characters"),
@@ -29,9 +32,15 @@ export const verifyOTPSchema = {
   body: z.object({
     email: z.string().email("Invalid email address"),
     otp: z.string().min(6, "OTP must be 6 digits").max(6),
-    fullname: z.string().min(2, "Fullname must be at least 2 characters").optional(),
+    fullname: z
+      .string()
+      .min(2, "Fullname must be at least 2 characters")
+      .optional(),
     gender: z.string().optional(),
-    password: z.string().min(6, "Password must be at least 6 characters").optional(),
+    password: z
+      .string()
+      .min(6, "Password must be at least 6 characters")
+      .optional(),
     phone: z.string().optional(),
     DOB: z.string().optional(),
   }),
@@ -59,7 +68,9 @@ export const resetPasswordSchema = {
 };
 
 export const refreshTokenSchema = {
-  body: z.object({
-    refreshToken: z.string().optional(),
-  }).optional(),
+  body: z
+    .object({
+      refreshToken: z.string().optional(),
+    })
+    .optional(),
 };

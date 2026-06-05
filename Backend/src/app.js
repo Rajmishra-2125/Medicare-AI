@@ -64,7 +64,7 @@ app.use(
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  max: 200, // Limit each IP to 200 requests per windowMs
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -73,7 +73,8 @@ app.use(limiter);
 const sensitiveLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 20, // Limit each IP to 20 requests per windowMs for sensitive actions
-  message: "Too many requests to this endpoint, please try again after 15 minutes.",
+  message:
+    "Too many requests to this endpoint, please try again after 15 minutes.",
   standardHeaders: true,
   legacyHeaders: false,
 });

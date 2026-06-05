@@ -3,11 +3,14 @@ import assert from "node:assert";
 import { escapeHTML } from "../utils/sanitize.js";
 
 test("User Account Service - escapeHTML Utility Tests", async (t) => {
-  await t.test("should escape '<' and '>' characters properly to prevent scripts running", () => {
-    const input = "<script>alert('xss')</script>";
-    const expected = "&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;";
-    assert.strictEqual(escapeHTML(input), expected);
-  });
+  await t.test(
+    "should escape '<' and '>' characters properly to prevent scripts running",
+    () => {
+      const input = "<script>alert('xss')</script>";
+      const expected = "&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;";
+      assert.strictEqual(escapeHTML(input), expected);
+    }
+  );
 
   await t.test("should escape ampersands properly", () => {
     const input = "Tom & Jerry";

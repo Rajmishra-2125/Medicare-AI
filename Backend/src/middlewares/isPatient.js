@@ -7,7 +7,10 @@ export const isPatient = asyncHandler(async (req, res, next) => {
   }
 
   if (req.user.role !== "PATIENT") {
-    throw new ApiError(403, "Forbidden: Only patients can access this resource");
+    throw new ApiError(
+      403,
+      "Forbidden: Only patients can access this resource"
+    );
   }
 
   next();

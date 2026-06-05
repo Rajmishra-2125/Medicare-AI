@@ -67,7 +67,7 @@ io.use((socket, next) => {
 
 io.on("connection", (socket) => {
   console.log("✅ A user connected with socket id:", socket.id);
-  
+
   // Use verified ID from JWT to prevent userId spoofing
   const userId = socket.user?._id;
   const userName = socket.handshake.query.userName || "there";
@@ -111,10 +111,13 @@ io.on("connection", (socket) => {
       const isPatient = appointment.patientId.toString() === currentUserId;
 
       const doctorDoc = await Doctor.findById(appointment.doctorId);
-      const isDoctor = doctorDoc && doctorDoc.doctorId.toString() === currentUserId;
+      const isDoctor =
+        doctorDoc && doctorDoc.doctorId.toString() === currentUserId;
 
       if (!isPatient && !isDoctor) {
-        socket.emit("webrtc:error", { message: "Unauthorized to join this consultation room" });
+        socket.emit("webrtc:error", {
+          message: "Unauthorized to join this consultation room",
+        });
         return;
       }
 
@@ -125,18 +128,26 @@ io.on("connection", (socket) => {
         return;
       }
 
-      const formatOptions = { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit" };
+      const formatOptions = {
+        timeZone: "Asia/Kolkata",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      };
       const formatter = new Intl.DateTimeFormat("en-US", formatOptions);
-      
+
       const todayStr = formatter.format(new Date());
       const aptDateStr = formatter.format(aptDate);
 
       if (aptDateStr !== todayStr) {
-        socket.emit("webrtc:error", { message: "This session is not scheduled for today" });
+        socket.emit("webrtc:error", {
+          message: "This session is not scheduled for today",
+        });
         return;
       }
 
-      const slotTimeStr = appointment.timeSlots || appointment.slotNumber || appointment.time;
+      const slotTimeStr =
+        appointment.timeSlots || appointment.slotNumber || appointment.time;
       if (slotTimeStr) {
         const times = slotTimeStr.split("-");
         const startTimeStr = times[0]?.trim();
@@ -161,12 +172,12 @@ io.on("connection", (socket) => {
         const endInfo = parseTimeToHoursMinutes(endTimeStr);
 
         const parts = formatter.formatToParts(new Date());
-        const year = parts.find(p => p.type === 'year').value;
-        const month = parts.find(p => p.type === 'month').value;
-        const day = parts.find(p => p.type === 'day').value;
+        const year = parts.find((p) => p.type === "year").value;
+        const month = parts.find((p) => p.type === "month").value;
+        const day = parts.find((p) => p.type === "day").value;
 
-        const pad = (num) => String(num).padStart(2, '0');
-        
+        const pad = (num) => String(num).padStart(2, "0");
+
         const startIso = `${year}-${pad(month)}-${pad(day)}T${pad(startInfo.hours)}:${pad(startInfo.minutes)}:00+05:30`;
         const endIso = `${year}-${pad(month)}-${pad(day)}T${pad(endInfo.hours)}:${pad(endInfo.minutes)}:00+05:30`;
 
@@ -174,7 +185,9 @@ io.on("connection", (socket) => {
         const endDateTime = new Date(endIso);
 
         const now = new Date();
-        const allowedStartTime = new Date(startDateTime.getTime() - 15 * 60 * 1000);
+        const allowedStartTime = new Date(
+          startDateTime.getTime() - 15 * 60 * 1000
+        );
         const allowedEndTime = new Date(endDateTime.getTime() + 30 * 60 * 1000);
 
         if (now > allowedEndTime) {
@@ -182,8 +195,8 @@ io.on("connection", (socket) => {
           return;
         }
         if (now < allowedStartTime) {
-          const errMsg = isPatient 
-            ? "You can try one 15min before when session started" 
+          const errMsg = isPatient
+            ? "You can try one 15min before when session started"
             : "This session starts in the future. You can join 15 minutes before the start time.";
           socket.emit("webrtc:error", { message: errMsg });
           return;
@@ -191,9 +204,13 @@ io.on("connection", (socket) => {
       }
 
       socket.join(roomId);
-      console.log(`📹 User ${userId} (${socket.id}) joined video room: ${roomId}`);
+      console.log(
+        `📹 User ${userId} (${socket.id}) joined video room: ${roomId}`
+      );
       // Notify other users in the room
-      socket.to(roomId).emit("webrtc:user-joined", { userId, socketId: socket.id });
+      socket
+        .to(roomId)
+        .emit("webrtc:user-joined", { userId, socketId: socket.id });
 
       // Real-time Joining Notification logic
       const nowTime = Date.now();
@@ -202,7 +219,7 @@ io.on("connection", (socket) => {
 
       if (!lastSent || nowTime - lastSent > 30000) {
         lastJoinNotificationTime[notificationKey] = nowTime;
-        
+
         if (isPatient) {
           const doctorUserId = doctorDoc.doctorId.toString();
           const notificationData = {
@@ -243,7 +260,9 @@ io.on("connection", (socket) => {
       }
     } catch (err) {
       console.error("WebRTC Join Room Error:", err);
-      socket.emit("webrtc:error", { message: "Server error during room joining" });
+      socket.emit("webrtc:error", {
+        message: "Server error during room joining",
+      });
     }
   });
 
@@ -258,7 +277,9 @@ io.on("connection", (socket) => {
   });
 
   socket.on("webrtc:ice-candidate", ({ roomId, candidate }) => {
-    socket.to(roomId).emit("webrtc:ice-candidate", { candidate, senderId: socket.id });
+    socket
+      .to(roomId)
+      .emit("webrtc:ice-candidate", { candidate, senderId: socket.id });
   });
 
   socket.on("webrtc:leave", ({ roomId, userId }) => {

@@ -10,6 +10,7 @@ import {
   rescheduleAppointment,
 } from "../controllers/appointment.controllers.js";
 import { verifyJWT } from "../middlewares/auth.middlewares.js";
+import { cacheMiddleware } from "../middlewares/cache.middleware.js";
 
 const router = Router();
 
@@ -81,10 +82,18 @@ const router = Router();
  */
 
 // Get my appointments
-router.route("/").get(verifyJWT, myAppointments);
+router
+  .route("/")
+  .get(verifyJWT, cacheMiddleware("patient:appointments", 300), myAppointments);
 
 // Get doctor appointments
-router.route("/doctor-appointments").get(verifyJWT, getDoctorAppointments);
+router
+  .route("/doctor-appointments")
+  .get(
+    verifyJWT,
+    cacheMiddleware("doctor:appointments", 300),
+    getDoctorAppointments
+  );
 
 // Get/Update specific appointment
 // Get Appointment details by Slot ID (New Route)

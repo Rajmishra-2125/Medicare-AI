@@ -109,15 +109,28 @@ const getAppointmentDetailsBySlotId = asyncHandler(async (req, res) => {
 
   // Enforce patient/doctor/admin ownership before returning data (IDOR fix)
   if (req.user.role === "PATIENT") {
-    const patientId = appointment.patientId._id ? appointment.patientId._id.toString() : appointment.patientId.toString();
+    const patientId = appointment.patientId._id
+      ? appointment.patientId._id.toString()
+      : appointment.patientId.toString();
     if (patientId !== req.user._id.toString()) {
-      throw new ApiError(403, "You are not authorized to view this appointment details");
+      throw new ApiError(
+        403,
+        "You are not authorized to view this appointment details"
+      );
     }
   } else if (req.user.role === "DOCTOR") {
     const doctorProfile = await Doctor.findOne({ doctorId: req.user._id });
-    const appointmentDoctorId = appointment.doctorId._id ? appointment.doctorId._id.toString() : appointment.doctorId.toString();
-    if (!doctorProfile || doctorProfile._id.toString() !== appointmentDoctorId) {
-      throw new ApiError(403, "You are not authorized to view this appointment details");
+    const appointmentDoctorId = appointment.doctorId._id
+      ? appointment.doctorId._id.toString()
+      : appointment.doctorId.toString();
+    if (
+      !doctorProfile ||
+      doctorProfile._id.toString() !== appointmentDoctorId
+    ) {
+      throw new ApiError(
+        403,
+        "You are not authorized to view this appointment details"
+      );
     }
   }
 
@@ -248,7 +261,9 @@ const applyForBooking = asyncHandler(async (req, res) => {
 
   // Prevent booking in the past
   const today = new Date();
-  const todayUTC = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+  const todayUTC = new Date(
+    Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())
+  );
   if (bookingDate < todayUTC) {
     throw new ApiError(400, "Cannot book appointments in the past");
   }
@@ -265,8 +280,15 @@ const applyForBooking = asyncHandler(async (req, res) => {
   }
 
   // Verify doctor is verified, visible, and accepting new patients
-  if (!doctor.isVerified || !doctor.isVisible || !doctor.isAcceptingNewPatients) {
-    throw new ApiError(400, "This doctor is currently not accepting appointments or is not verified/visible");
+  if (
+    !doctor.isVerified ||
+    !doctor.isVisible ||
+    !doctor.isAcceptingNewPatients
+  ) {
+    throw new ApiError(
+      400,
+      "This doctor is currently not accepting appointments or is not verified/visible"
+    );
   }
 
   const doctorId = doctor._id; // Correct: Use Doctor Document ID
@@ -552,7 +574,10 @@ const updateAppointmentStatus = asyncHandler(async (req, res) => {
   }
 
   if (status === "CONFIRMED" && req.user.role !== "ADMIN") {
-    throw new ApiError(403, "Only automated payment verification or admin can confirm appointments");
+    throw new ApiError(
+      403,
+      "Only automated payment verification or admin can confirm appointments"
+    );
   }
 
   // 1. STATE MACHINE VALIDATION
@@ -631,7 +656,10 @@ const updateAppointmentStatus = asyncHandler(async (req, res) => {
 
   if (status === "COMPLETED") {
     if (appointment.paymentStatus !== "PAID") {
-      throw new ApiError(400, "Cannot complete appointment. Payment has not been verified/paid.");
+      throw new ApiError(
+        400,
+        "Cannot complete appointment. Payment has not been verified/paid."
+      );
     }
     appointment.isCompleted = true; // If schema supports
   }
@@ -781,7 +809,7 @@ const rescheduleAppointment = asyncHandler(async (req, res) => {
   appointment.status = "RESCHEDULED";
   appointment.rescheduleAt = new Date();
   appointment.rescheduleReason = reason || "User requested reschedule";
-  
+
   if (meetingType) {
     appointment.meetingType = meetingType;
   }

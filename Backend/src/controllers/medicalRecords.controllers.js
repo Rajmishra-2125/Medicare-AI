@@ -40,7 +40,10 @@ const uploadRecord = asyncHandler(async (req, res) => {
 
   // Enforce role and relationship validation
   if (req.user?.role !== "DOCTOR" && req.user?.role !== "ADMIN") {
-    throw new ApiError(403, "Only doctors and admins are authorized to upload medical records");
+    throw new ApiError(
+      403,
+      "Only doctors and admins are authorized to upload medical records"
+    );
   }
 
   if (req.user?.role === "DOCTOR") {
@@ -50,10 +53,13 @@ const uploadRecord = asyncHandler(async (req, res) => {
     }
     const hasRelationship = await Appointment.exists({
       patientId: patient._id,
-      doctorId: doctorProfile._id
+      doctorId: doctorProfile._id,
     });
     if (!hasRelationship) {
-      throw new ApiError(403, "You do not have a professional relationship with this patient to upload records");
+      throw new ApiError(
+        403,
+        "You do not have a professional relationship with this patient to upload records"
+      );
     }
   }
 
@@ -98,7 +104,7 @@ const uploadRecord = asyncHandler(async (req, res) => {
     resourceId: record._id.toString(),
     patientId: patient._id,
     status: "SUCCESS",
-    details: `Medical record '${title}' uploaded by user ${uploaderId} for patient ${patient._id}.`
+    details: `Medical record '${title}' uploaded by user ${uploaderId} for patient ${patient._id}.`,
   });
 
   return res
@@ -130,10 +136,13 @@ const getRecords = asyncHandler(async (req, res) => {
     }
     const hasRelationship = await Appointment.exists({
       patientId: patientId,
-      doctorId: doctorProfile._id
+      doctorId: doctorProfile._id,
     });
     if (!hasRelationship) {
-      throw new ApiError(403, "You do not have a professional relationship with this patient to view their records");
+      throw new ApiError(
+        403,
+        "You do not have a professional relationship with this patient to view their records"
+      );
     }
     query.patientId = patientId;
   } else if (userRole === "ADMIN") {
@@ -156,7 +165,7 @@ const getRecords = asyncHandler(async (req, res) => {
     resourceType: "MEDICAL_RECORD",
     patientId: targetPatientId,
     status: "SUCCESS",
-    details: `Fetched ${records.length} medical records.`
+    details: `Fetched ${records.length} medical records.`,
   });
 
   return res

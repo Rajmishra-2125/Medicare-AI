@@ -14,8 +14,8 @@ const getDoctors = asyncHandler(async (req, res) => {
     {
       $match: {
         isVisible: true,
-        isVerified: true
-      }
+        isVerified: true,
+      },
     },
     {
       $lookup: {

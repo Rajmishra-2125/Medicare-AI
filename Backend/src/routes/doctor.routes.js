@@ -41,10 +41,14 @@ const router = Router();
  */
 
 // Get explicit current doctor profile
-router.route("/my-profile").get(verifyJWT, getMyProfile);
+router
+  .route("/my-profile")
+  .get(verifyJWT, cacheMiddleware("doctor:profile", 300), getMyProfile);
 
 // Get doctor stats and earnings metrics
-router.route("/analytics").get(verifyJWT, getDoctorAnalytics);
+router
+  .route("/analytics")
+  .get(verifyJWT, cacheMiddleware("doctor:analytics", 300), getDoctorAnalytics);
 
 // Update doctor profile
 router.route("/updateInfo").patch(verifyJWT, isDoctor, updateDoctorProfile);
@@ -76,10 +80,18 @@ router
   );
 
 // Get doctor's patients
-router.route("/patients").get(verifyJWT, getDoctorPatients);
+router
+  .route("/patients")
+  .get(verifyJWT, cacheMiddleware("doctor:patients", 300), getDoctorPatients);
 
 // Get doctor's prescriptions
-router.route("/prescriptions").get(verifyJWT, getDoctorPrescriptions);
+router
+  .route("/prescriptions")
+  .get(
+    verifyJWT,
+    cacheMiddleware("doctor:prescriptions", 300),
+    getDoctorPrescriptions
+  );
 
 // Email prescription
 router

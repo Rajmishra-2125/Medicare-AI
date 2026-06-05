@@ -14,9 +14,12 @@ export const cacheMiddleware = (keyPrefix, durationSeconds = 3600) => {
       return next();
     }
 
-    // Construct a unique cache key based on prefix, params, query, and request body
+    // Construct a unique cache key based on prefix, user id, params, query, and request body
     let cacheKeyParts = [keyPrefix];
 
+    if (req.user && req.user._id) {
+      cacheKeyParts.push(req.user._id.toString());
+    }
     if (req.params && Object.keys(req.params).length > 0) {
       cacheKeyParts.push(JSON.stringify(req.params));
     }

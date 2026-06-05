@@ -210,4 +210,30 @@ userSchema.virtual("fullAddress").get(function () {
   return `${street ? street + ", " : ""}${city ? city + ", " : ""}${state ? state + ", " : ""}${zipCode ? zipCode + ", " : ""}${country || ""}`;
 });
 
+import { invalidateCachePattern } from "../middlewares/cache.middleware.js";
+
+userSchema.post("save", async function () {
+  try {
+    await Promise.all([
+      invalidateCachePattern("admin:users:*"),
+      invalidateCachePattern("admin:dashboard:*"),
+      invalidateCachePattern("admin:doctors:*"),
+    ]);
+  } catch (err) {
+    console.error("Failed to invalidate caches on user save:", err);
+  }
+});
+
+userSchema.post(/^findOneAnd/, async function () {
+  try {
+    await Promise.all([
+      invalidateCachePattern("admin:users:*"),
+      invalidateCachePattern("admin:dashboard:*"),
+      invalidateCachePattern("admin:doctors:*"),
+    ]);
+  } catch (err) {
+    console.error("Failed to invalidate caches on user update:", err);
+  }
+});
+
 export const User = mongoose.model("User", userSchema);

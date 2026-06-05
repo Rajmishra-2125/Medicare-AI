@@ -10,7 +10,7 @@ const reviewSchema = new Schema(
     },
     doctorId: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Doctor",
       required: true,
       index: true,
     },
@@ -94,6 +94,30 @@ reviewSchema.index({ doctorId: 1, rating: -1 });
 reviewSchema.pre(/^find/, function () {
   if (!this.getOptions().includeUnapproved) {
     this.find({ isApproved: true, isDeleted: false });
+  }
+});
+
+import { invalidateCachePattern } from "../middlewares/cache.middleware.js";
+
+reviewSchema.post("save", async function () {
+  try {
+    await Promise.all([
+      invalidateCachePattern("doctors:*"),
+      invalidateCachePattern("doctor:analytics:*"),
+    ]);
+  } catch (err) {
+    console.error("Failed to invalidate caches on review save:", err);
+  }
+});
+
+reviewSchema.post(/^findOneAnd/, async function () {
+  try {
+    await Promise.all([
+      invalidateCachePattern("doctors:*"),
+      invalidateCachePattern("doctor:analytics:*"),
+    ]);
+  } catch (err) {
+    console.error("Failed to invalidate caches on review update:", err);
   }
 });
 

@@ -71,6 +71,9 @@ slotSchema.post("save", async function (doc) {
     invalidateCachePattern(`slots:${doc.doctorId.toString()}:*`).catch((err) =>
       console.error("Failed to invalidate slots cache on post-save:", err)
     );
+    invalidateCachePattern("admin:slots:*").catch((err) =>
+      console.error("Failed to invalidate admin slots cache on post-save:", err)
+    );
   }
 });
 
@@ -78,6 +81,12 @@ slotSchema.post(/^findOneAnd/, async function (doc) {
   if (doc && doc.doctorId) {
     invalidateCachePattern(`slots:${doc.doctorId.toString()}:*`).catch((err) =>
       console.error("Failed to invalidate slots cache on post-query:", err)
+    );
+    invalidateCachePattern("admin:slots:*").catch((err) =>
+      console.error(
+        "Failed to invalidate admin slots cache on post-query:",
+        err
+      )
     );
   }
 });

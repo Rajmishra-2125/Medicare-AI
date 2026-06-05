@@ -86,14 +86,12 @@ function DoctorReviewsModal({ doctor, onClose }) {
                 <div key={review._id} className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex items-center gap-3">
-                      <img 
-                        src={review.patientId?.avatar || `https://ui-avatars.com/api/?name=${review.patientId?.fullName || "Patient"}&background=random`}
-                        alt="Patient Avatar"
-                        className="w-10 h-10 rounded-full bg-gray-100"
-                      />
+                      <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 flex items-center justify-center font-bold text-sm shadow-sm shrink-0 uppercase">
+                        {review.patientId?.fullname?.[0] || "P"}
+                      </div>
                       <div>
                         <p className="font-semibold text-gray-900 dark:text-white text-sm">
-                          {review.patientId?.fullName || "Anonymous Patient"}
+                          {review.patientId?.fullname || "Anonymous Patient"}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                           {new Date(review.createdAt).toLocaleDateString()}

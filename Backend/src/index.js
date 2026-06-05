@@ -14,6 +14,7 @@ validateEnvironment();
 import { app } from "./app.js";
 import { server } from "./socket.js";
 import connectDB from "./db/index.js";
+import { connectRedis } from "./config/redis.js";
 const PORT = process.env.PORT || 8001;
 const HOST = process.env.HOST || "0.0.0.0";
 
@@ -29,6 +30,7 @@ if (!process.env.GEMINI_MODEL) {
 if (!process.env.VERCEL) {
   connectDB()
     .then(() => {
+      connectRedis();
       server.listen(PORT, HOST, () => {
         console.log(`✅Server is running on port ${PORT}`);
         setupCronJobs();

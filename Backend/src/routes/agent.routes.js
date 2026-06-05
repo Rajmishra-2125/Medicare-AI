@@ -1,6 +1,10 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
-import { handleAgentChat, getChatHistory, clearChatHistory } from "../controllers/agent.controllers.js";
+import {
+  handleAgentChat,
+  getChatHistory,
+  clearChatHistory,
+} from "../controllers/agent.controllers.js";
 import { verifyJWT } from "../middlewares/auth.middlewares.js";
 import { isPatient } from "../middlewares/isPatient.js";
 
@@ -24,7 +28,8 @@ const agentLimiter = rateLimit({
 router.route("/chat").post(verifyJWT, isPatient, agentLimiter, handleAgentChat);
 
 // History management routes
-router.route("/history")
+router
+  .route("/history")
   .get(verifyJWT, isPatient, getChatHistory)
   .delete(verifyJWT, isPatient, clearChatHistory);
 

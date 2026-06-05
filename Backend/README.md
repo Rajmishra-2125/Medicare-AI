@@ -36,51 +36,57 @@ Backend/
 The base path for all endpoints is `/api/v1`.
 
 ### 🔓 Public & Authentication Paths
-| Method | Route | Middleware | Description |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/healthcheck` | None | Returns server health status |
-| `POST` | `/auth/register` | RateLimit | Registers a new Doctor or Patient |
-| `POST` | `/auth/login` | RateLimit | Authenticates user; returns JWT cookie + access token |
-| `POST` | `/auth/verify-otp` | RateLimit | Verifies phone verification OTP code |
-| `POST` | `/auth/refresh-token` | None | Validates HttpOnly refresh cookie; rotates access tokens |
-| `POST` | `/auth/forgot-password` | None | Initiates reset-token email pipeline |
-| `POST` | `/auth/reset-password/:token`| None | Sets new password via token verification |
+
+| Method | Route                         | Middleware | Description                                              |
+| :----- | :---------------------------- | :--------- | :------------------------------------------------------- |
+| `GET`  | `/healthcheck`                | None       | Returns server health status                             |
+| `POST` | `/auth/register`              | RateLimit  | Registers a new Doctor or Patient                        |
+| `POST` | `/auth/login`                 | RateLimit  | Authenticates user; returns JWT cookie + access token    |
+| `POST` | `/auth/verify-otp`            | RateLimit  | Verifies phone verification OTP code                     |
+| `POST` | `/auth/refresh-token`         | None       | Validates HttpOnly refresh cookie; rotates access tokens |
+| `POST` | `/auth/forgot-password`       | None       | Initiates reset-token email pipeline                     |
+| `POST` | `/auth/reset-password/:token` | None       | Sets new password via token verification                 |
 
 ### 👤 Profile & User Operations
-| Method | Route | Middleware | Description |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/users/me` | JWT | Fetches active authenticated user profile |
-| `PATCH` | `/users/update-profile` | JWT | Updates user credentials & contact details |
-| `POST` | `/users/avatar` | JWT + Multer | Uploads user profile image to Cloudinary CDN |
-| `PATCH` | `/users/change-password` | JWT | Modifies account access credentials |
+
+| Method  | Route                    | Middleware   | Description                                  |
+| :------ | :----------------------- | :----------- | :------------------------------------------- |
+| `GET`   | `/users/me`              | JWT          | Fetches active authenticated user profile    |
+| `PATCH` | `/users/update-profile`  | JWT          | Updates user credentials & contact details   |
+| `POST`  | `/users/avatar`          | JWT + Multer | Uploads user profile image to Cloudinary CDN |
+| `PATCH` | `/users/change-password` | JWT          | Modifies account access credentials          |
 
 ### 👨‍⚕️ Clinicians & Slots Grid
-| Method | Route | Middleware | Description |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/doctors` | None | Lists verified doctors with filter options |
-| `GET` | `/doctors/:id` | None | Fetches detailed clinical profile and reviews |
-| `POST` | `/doctors/onboard` | JWT (Admin) | Onboards and verifies doctor credentials |
-| `GET` | `/slots/:doctorId` | JWT | Queries clinician's availability calendar |
-| `POST` | `/slots/create` | JWT (Doctor) | Manually initializes custom time availability slots |
+
+| Method | Route              | Middleware   | Description                                         |
+| :----- | :----------------- | :----------- | :-------------------------------------------------- |
+| `GET`  | `/doctors`         | None         | Lists verified doctors with filter options          |
+| `GET`  | `/doctors/:id`     | None         | Fetches detailed clinical profile and reviews       |
+| `POST` | `/doctors/onboard` | JWT (Admin)  | Onboards and verifies doctor credentials            |
+| `GET`  | `/slots/:doctorId` | JWT          | Queries clinician's availability calendar           |
+| `POST` | `/slots/create`    | JWT (Doctor) | Manually initializes custom time availability slots |
 
 ### 📅 Consultation Bookings
-| Method | Route | Middleware | Description |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/appointments/book` | JWT (Patient) | Instantiates a pending consultation booking |
-| `GET` | `/appointments/history` | JWT | Fetches active user booking records |
-| `PATCH` | `/appointments/cancel/:id` | JWT | Cancels booking and releases calendar slot |
-| `PATCH` | `/appointments/status/:id` | JWT (Doctor) | Marks consultations as `COMPLETED` or `IN_PROGRESS` |
+
+| Method  | Route                      | Middleware    | Description                                         |
+| :------ | :------------------------- | :------------ | :-------------------------------------------------- |
+| `POST`  | `/appointments/book`       | JWT (Patient) | Instantiates a pending consultation booking         |
+| `GET`   | `/appointments/history`    | JWT           | Fetches active user booking records                 |
+| `PATCH` | `/appointments/cancel/:id` | JWT           | Cancels booking and releases calendar slot          |
+| `PATCH` | `/appointments/status/:id` | JWT (Doctor)  | Marks consultations as `COMPLETED` or `IN_PROGRESS` |
 
 ### 💳 Cashfree Payments
-| Method | Route | Middleware | Description |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/payments/create-order` | JWT + RateLimit| Creates Cashfree PG order & returns session ID |
-| `POST` | `/payments/verify-payment` | JWT + RateLimit| Webhook verifying transaction signatures |
+
+| Method | Route                      | Middleware      | Description                                    |
+| :----- | :------------------------- | :-------------- | :--------------------------------------------- |
+| `POST` | `/payments/create-order`   | JWT + RateLimit | Creates Cashfree PG order & returns session ID |
+| `POST` | `/payments/verify-payment` | JWT + RateLimit | Webhook verifying transaction signatures       |
 
 ### 🤖 MediBot AI Triage (Gemini)
-| Method | Route | Middleware | Description |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/agent/chat` | JWT + RateLimit| Processes user prompt via Gemini AI engine |
+
+| Method | Route         | Middleware      | Description                                |
+| :----- | :------------ | :-------------- | :----------------------------------------- |
+| `POST` | `/agent/chat` | JWT + RateLimit | Processes user prompt via Gemini AI engine |
 
 ---
 
@@ -89,13 +95,15 @@ The base path for all endpoints is `/api/v1`.
 MediCare uses the official **Cashfree PG SDK (`cashfree-pg` v6.0.4)** to process all billing transactions.
 
 ### Flow Architecture
+
 1.  **Order Initiation**: The patient requests a booking. The `/payments/create-order` controller verifies the doctor's fee, reserves the slot (`status: "RESERVED"`), creates a local Mongoose `Payment` entry, and invokes `Cashfree.PGCreateOrder()`.
 2.  **Checkout Handshake**: Cashfree returns a `payment_session_id`. The backend forwards this session ID along with the environment (e.g., `SANDBOX` or `PRODUCTION`) to the client.
 3.  **Payment Verification**: Once checkout completes, the frontend sends the Cashfree `order_id` to `/payments/verify-payment`. The backend verifies the signature using `Cashfree.PGFetchOrder(order_id)` and updates the appointment status to `CONFIRMED` and payment status to `PAID`.
 
 ### Expiry Policies
-*   When orders are created, they are flagged as `PENDING`.
-*   A minute-by-minute background worker cancels unpaid orders older than 15 minutes, automatically releasing the calendar slots back to `AVAILABLE`.
+
+- When orders are created, they are flagged as `PENDING`.
+- A minute-by-minute background worker cancels unpaid orders older than 15 minutes, automatically releasing the calendar slots back to `AVAILABLE`.
 
 ---
 
@@ -104,12 +112,15 @@ MediCare uses the official **Cashfree PG SDK (`cashfree-pg` v6.0.4)** to process
 MediBot leverages the Google Gemini model (defaulting to `gemini-2.5-flash`) via the `@google/generative-ai` SDK.
 
 ### Multi-Key Rotation Strategy
+
 To prevent service interruptions due to API quota depletion (429 Rate Limits), the backend implements a rotating key manager in [gemini.service.js](file:///Users/rajmishra/Desktop/Doctor-appointment-project/doctor-appointment-project/Backend/src/services/gemini.service.js):
-*   **Key Source**: Reads a comma-separated list from `GEMINI_API_KEYS` or numbered keys `GEMINI_API_KEY_1`, `GEMINI_API_KEY_2`, and `GEMINI_API_KEY_3`.
-*   **Quota Monitoring**: The service wraps GenAI executions in a try-catch block. If a `429 Too Many Requests` or quota limit exception occurs, it increments the key index, registers the switch, and automatically retries the operation with the next available key.
-*   **Throttling**: A `bottleneck` scheduler limits throughput to **2 concurrent requests per second** (500ms spacing) to stay within free-tier quotas.
+
+- **Key Source**: Reads a comma-separated list from `GEMINI_API_KEYS` or numbered keys `GEMINI_API_KEY_1`, `GEMINI_API_KEY_2`, and `GEMINI_API_KEY_3`.
+- **Quota Monitoring**: The service wraps GenAI executions in a try-catch block. If a `429 Too Many Requests` or quota limit exception occurs, it increments the key index, registers the switch, and automatically retries the operation with the next available key.
+- **Throttling**: A `bottleneck` scheduler limits throughput to **2 concurrent requests per second** (500ms spacing) to stay within free-tier quotas.
 
 ### Chat Memory Cache
+
 Conversation histories are cached in **Redis** with a 30-minute expiration time. This keeps conversation histories fast and light without bloating the primary MongoDB collections.
 
 ---
@@ -119,24 +130,29 @@ Conversation histories are cached in **Redis** with a 30-minute expiration time.
 The backend uses **Socket.io** to support real-time user notifications and WebRTC telemedicine signaling in [socket.js](file:///Users/rajmishra/Desktop/Doctor-appointment-project/doctor-appointment-project/Backend/src/socket.js).
 
 ### Security & Token Verification
-*   **Handshake Middleware**: All socket connections verify the client's JWT access token on connection:
-    ```javascript
-    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-    socket.user = decoded;
-    ```
-*   Spoofing is prevented by binding the socket's room actions directly to `socket.user._id`.
+
+- **Handshake Middleware**: All socket connections verify the client's JWT access token on connection:
+  ```javascript
+  const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+  socket.user = decoded;
+  ```
+- Spoofing is prevented by binding the socket's room actions directly to `socket.user._id`.
 
 ### WebRTC Telemedicine Signaling Channels
+
 Doctors and patients join virtual consultations via the following events:
-*   `webrtc:join-room`: Validates that the appointment exists in MongoDB and that the connecting user is either the doctor or the patient associated with that appointment.
-*   `webrtc:offer` / `webrtc:answer`: Relays SDP parameters between peers.
-*   `webrtc:ice-candidate`: Relays connectivity candidates.
-*   `webrtc:leave`: Notifies the peer that a user has exited the consultation room.
+
+- `webrtc:join-room`: Validates that the appointment exists in MongoDB and that the connecting user is either the doctor or the patient associated with that appointment.
+- `webrtc:offer` / `webrtc:answer`: Relays SDP parameters between peers.
+- `webrtc:ice-candidate`: Relays connectivity candidates.
+- `webrtc:leave`: Notifies the peer that a user has exited the consultation room.
 
 ### Emission Throttling
+
 A connection-level rate limiter checks incoming client events:
-*   Limits each socket to a maximum of **60 messages per minute**.
-*   Exceeding this limit triggers a `Rate limit exceeded` warning and ignores subsequent inputs for that minute.
+
+- Limits each socket to a maximum of **60 messages per minute**.
+- Exceeding this limit triggers a `Rate limit exceeded` warning and ignores subsequent inputs for that minute.
 
 ---
 
@@ -168,6 +184,7 @@ Background workers are scheduled using `node-cron` in [cron.js](file:///Users/ra
     cp .env.sample .env
     ```
 4.  Launch the services:
+
     ```bash
     # Development mode (with nodemon hot reloading)
     npm run dev

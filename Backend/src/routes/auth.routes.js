@@ -131,10 +131,13 @@ router.route("/2fa/login").post(validateSchema(login2FASchema), login2FA);
 router.route("/google").post(validateSchema(googleAuthSchema), googleAuthLogin);
 
 // Verify OTP
-router.route("/verify-otp").post(upload.none(), validateSchema(verifyOTPSchema), verifyEmailOTP);
+router
+  .route("/verify-otp")
+  .post(upload.none(), validateSchema(verifyOTPSchema), verifyEmailOTP);
 
 // Refresh access token
-router.route("/refresh-token")
+router
+  .route("/refresh-token")
   .get(refreshAccessToken)
   .post(validateSchema(refreshTokenSchema), refreshAccessToken);
 
@@ -152,8 +155,12 @@ router.route("/2fa/verify").post(verifyJWT, verify2FA);
 router.route("/2fa/disable").post(verifyJWT, disable2FA);
 
 // Password Reset
-router.route("/forgot-password").post(validateSchema(forgotPasswordSchema), forgotPassword);
-router.route("/reset-password/:token").post(validateSchema(resetPasswordSchema), resetPassword);
+router
+  .route("/forgot-password")
+  .post(validateSchema(forgotPasswordSchema), forgotPassword);
+router
+  .route("/reset-password/:token")
+  .post(validateSchema(resetPasswordSchema), resetPassword);
 
 // Exporting all routes
 export default router;

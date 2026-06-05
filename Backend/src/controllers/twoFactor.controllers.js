@@ -18,16 +18,19 @@ const authenticator = {
   verify({ token, secret }) {
     const result = verifySync({ token, secret });
     return result && result.valid === true;
-  }
+  },
 };
 
 // Helper to generate cookies options
 const getCookieOptions = (req) => {
-  const isLocalhost = req.get("host")?.includes("localhost") || req.get("host")?.includes("127.0.0.1");
+  const isLocalhost =
+    req.get("host")?.includes("localhost") ||
+    req.get("host")?.includes("127.0.0.1");
   return {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production" && !isLocalhost,
-    sameSite: process.env.NODE_ENV === "production" && !isLocalhost ? "none" : "lax",
+    sameSite:
+      process.env.NODE_ENV === "production" && !isLocalhost ? "none" : "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   };
 };
@@ -159,7 +162,7 @@ export const login2FA = asyncHandler(async (req, res) => {
 
   try {
     const decoded = jwt.verify(twoFactorToken, process.env.ACCESS_TOKEN_SECRET);
-    
+
     if (!decoded.is2FA) {
       throw new ApiError(400, "Invalid 2FA Validation Token");
     }
@@ -167,7 +170,10 @@ export const login2FA = asyncHandler(async (req, res) => {
     const user = await User.findById(decoded._id).select("+twoFactorSecret");
 
     if (!user || !user.isTwoFactorEnabled || !user.twoFactorSecret) {
-      throw new ApiError(400, "Two-Factor Authentication is not active on this account");
+      throw new ApiError(
+        400,
+        "Two-Factor Authentication is not active on this account"
+      );
     }
 
     const isVerified = authenticator.verify({
@@ -180,9 +186,14 @@ export const login2FA = asyncHandler(async (req, res) => {
     }
 
     // Auth is successful, generate real login tokens
-    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id, req);
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
+      user._id,
+      req
+    );
 
-    const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
+    const loggedInUser = await User.findById(user._id).select(
+      "-password -refreshToken"
+    );
 
     const options = getCookieOptions(req);
 
@@ -198,6 +209,9 @@ export const login2FA = asyncHandler(async (req, res) => {
         )
       );
   } catch (error) {
-    throw new ApiError(401, error.message || "Invalid or expired 2FA validation session");
+    throw new ApiError(
+      401,
+      error.message || "Invalid or expired 2FA validation session"
+    );
   }
 });

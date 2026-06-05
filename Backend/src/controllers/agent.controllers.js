@@ -109,9 +109,9 @@ const getAvailableSlots = async ({ doctorName, dateStr }) => {
           cachedResult.slots = cachedResult.slots.filter((s) => {
             const [y, m, d] = s.date.split("-");
             const startTimeStr = s.time.split("-")[0].trim();
-            
+
             const { hours, minutes } = parseTimeToHoursMinutes(startTimeStr);
-            const pad = (num) => String(num).padStart(2, '0');
+            const pad = (num) => String(num).padStart(2, "0");
             const isoString = `${y}-${pad(m)}-${pad(d)}T${pad(hours)}:${pad(minutes)}:00+05:30`;
             const slotDateTime = new Date(isoString);
             return slotDateTime.getTime() > now.getTime() + 10 * 60 * 1000;
@@ -192,7 +192,7 @@ const getAvailableSlots = async ({ doctorName, dateStr }) => {
         const date = s.date.getUTCDate();
 
         const { hours, minutes } = parseTimeToHoursMinutes(s.startTime);
-        const pad = (num) => String(num).padStart(2, '0');
+        const pad = (num) => String(num).padStart(2, "0");
         const isoString = `${year}-${pad(month + 1)}-${pad(date)}T${pad(hours)}:${pad(minutes)}:00+05:30`;
         const slotDateTime = new Date(isoString);
 
@@ -282,7 +282,8 @@ const bookAppointment = async (
     if (!slot) {
       return {
         success: false,
-        message: "The requested slot is either not available or has already been booked.",
+        message:
+          "The requested slot is either not available or has already been booked.",
       };
     }
 
@@ -420,7 +421,9 @@ export const handleAgentChat = asyncHandler(async (req, res) => {
   const patientId = req.user._id;
 
   // Sanitize message: strip HTML tags
-  const sanitizedMessage = message ? message.replace(/<[^>]*>/g, "").trim() : "";
+  const sanitizedMessage = message
+    ? message.replace(/<[^>]*>/g, "").trim()
+    : "";
   if (!sanitizedMessage) {
     throw new ApiError(400, "Message content is required");
   }
@@ -454,12 +457,11 @@ export const handleAgentChat = asyncHandler(async (req, res) => {
   res.setHeader("X-Accel-Buffering", "no");
 
   try {
-    await geminiService.executeWithRotation(
-      async (genAI) => {
-        // Define the base model prompt configuring its persona and safety disclaimers
-        const model = genAI.getGenerativeModel({
-          model: geminiService.modelName,
-          systemInstruction: `You are MediBot, an AI appointment assistant for our hospital portal.
+    await geminiService.executeWithRotation(async (genAI) => {
+      // Define the base model prompt configuring its persona and safety disclaimers
+      const model = genAI.getGenerativeModel({
+        model: geminiService.modelName,
+        systemInstruction: `You are MediBot, an AI appointment assistant for our hospital portal.
 CRITICAL CONTEXT: Today is ${readableDate} (YYYY-MM-DD: ${isoDate}). When a user requests slots for 'today', 'tomorrow', or any relative day, you MUST mathematically calculate the correct YYYY-MM-DD date using this real-time calendar and explicitly pass it as the "dateStr" parameter to get_available_slots!
 
 
@@ -483,96 +485,97 @@ FALLBACKS:
 - If no slots found → apologize and suggest trying a different date.
 - Never make up doctor names, slots, or fees.
 - Never tell fees in $, use ₹. consultationFee coming from database is in ₹.`,
-          tools: systemTools,
-        });
+        tools: systemTools,
+      });
 
-        // Start chat session with persistent history
-        const chat = model.startChat({
-          history: chatSessionObj.history || [],
-        });
+      // Start chat session with persistent history
+      const chat = model.startChat({
+        history: chatSessionObj.history || [],
+      });
 
-        let currentInput = sanitizedMessage;
-        let round = 0;
-        const maxRounds = 5;
+      let currentInput = sanitizedMessage;
+      let round = 0;
+      const maxRounds = 5;
 
-        while (round < maxRounds) {
-          const responseStream = await chat.sendMessageStream(currentInput);
-          let isToolCall = false;
+      while (round < maxRounds) {
+        const responseStream = await chat.sendMessageStream(currentInput);
+        let isToolCall = false;
 
-          for await (const chunk of responseStream.stream) {
-            if (chunk.functionCalls && chunk.functionCalls.length > 0) {
-              isToolCall = true;
-            }
-
-            try {
-              const text = chunk.text();
-              if (text && text.trim() !== "") {
-                // Write text chunk directly to client in SSE format
-                res.write(`data: ${JSON.stringify({ text })}\n\n`);
-              }
-            } catch (e) {
-              // Skip if no text chunk
-            }
+        for await (const chunk of responseStream.stream) {
+          if (chunk.functionCalls && chunk.functionCalls.length > 0) {
+            isToolCall = true;
           }
 
-          const finalResponse = await responseStream.response;
-          const calls = finalResponse.functionCalls();
-
-          if (calls && calls.length > 0) {
-            // Resolve functions
-            const functionResponses = await Promise.all(
-              calls.map(async (call) => {
-                let functionData = null;
-
-                if (call.name === "search_doctors") {
-                  functionData = await searchDoctors(call.args);
-                } else if (call.name === "get_available_slots") {
-                  functionData = await getAvailableSlots(call.args);
-                } else if (call.name === "book_appointment") {
-                  functionData = await bookAppointment(patientId, call.args);
-                }
-
-                return {
-                  functionResponse: {
-                    name: call.name,
-                    response: functionData || {
-                      error: "Unknown internal resolution failure.",
-                    },
-                  },
-                };
-              })
-            );
-
-            currentInput = functionResponses;
-            round++;
-          } else {
-            // Final response text completed, break function calling round loop
-            break;
+          try {
+            const text = chunk.text();
+            if (text && text.trim() !== "") {
+              // Write text chunk directly to client in SSE format
+              res.write(`data: ${JSON.stringify({ text })}\n\n`);
+            }
+          } catch (e) {
+            // Skip if no text chunk
           }
         }
 
-        // Securely sanitize, filter, and cap chat history to last 20 messages, excluding function call/response parts
-        const rawHistory = await chat.getHistory();
-        const cleanedHistory = rawHistory
-          .filter((msg) => {
-            if (msg.role !== "user" && msg.role !== "model") return false;
-            if (!msg.parts || msg.parts.length === 0) return false;
-            const hasFunctionParts = msg.parts.some(
-              (part) => part.functionCall || part.functionResponse
-            );
-            return !hasFunctionParts;
-          })
-          .slice(-20); // Keep last 20 messages (10 turns)
+        const finalResponse = await responseStream.response;
+        const calls = finalResponse.functionCalls();
 
-        chatSessionObj.history = cleanedHistory;
-        await chatSessionObj.save();
+        if (calls && calls.length > 0) {
+          // Resolve functions
+          const functionResponses = await Promise.all(
+            calls.map(async (call) => {
+              let functionData = null;
+
+              if (call.name === "search_doctors") {
+                functionData = await searchDoctors(call.args);
+              } else if (call.name === "get_available_slots") {
+                functionData = await getAvailableSlots(call.args);
+              } else if (call.name === "book_appointment") {
+                functionData = await bookAppointment(patientId, call.args);
+              }
+
+              return {
+                functionResponse: {
+                  name: call.name,
+                  response: functionData || {
+                    error: "Unknown internal resolution failure.",
+                  },
+                },
+              };
+            })
+          );
+
+          currentInput = functionResponses;
+          round++;
+        } else {
+          // Final response text completed, break function calling round loop
+          break;
+        }
       }
-    );
+
+      // Securely sanitize, filter, and cap chat history to last 20 messages, excluding function call/response parts
+      const rawHistory = await chat.getHistory();
+      const cleanedHistory = rawHistory
+        .filter((msg) => {
+          if (msg.role !== "user" && msg.role !== "model") return false;
+          if (!msg.parts || msg.parts.length === 0) return false;
+          const hasFunctionParts = msg.parts.some(
+            (part) => part.functionCall || part.functionResponse
+          );
+          return !hasFunctionParts;
+        })
+        .slice(-20); // Keep last 20 messages (10 turns)
+
+      chatSessionObj.history = cleanedHistory;
+      await chatSessionObj.save();
+    });
     res.write("data: [DONE]\n\n");
     res.end();
   } catch (error) {
     console.error("LLM Engine Fault:", error.message);
-    res.write(`data: ${JSON.stringify({ error: "Sorry! We are facing high traffic. Please continue with manual method." })}\n\n`);
+    res.write(
+      `data: ${JSON.stringify({ error: "Sorry! We are facing high traffic. Please continue with manual method." })}\n\n`
+    );
     res.end();
   }
 });
@@ -593,12 +596,16 @@ export const getChatHistory = asyncHandler(async (req, res) => {
       .filter((msg) => msg.text && msg.text.trim() !== "");
   }
 
-  return res.status(200).json(new ApiResponse(200, uiHistory, "Chat history loaded."));
+  return res
+    .status(200)
+    .json(new ApiResponse(200, uiHistory, "Chat history loaded."));
 });
 
 // Clear patient chat history
 export const clearChatHistory = asyncHandler(async (req, res) => {
   const patientId = req.user._id;
   await ChatSession.deleteOne({ patientId });
-  return res.status(200).json(new ApiResponse(200, {}, "Chat history cleared."));
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Chat history cleared."));
 });

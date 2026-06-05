@@ -224,4 +224,40 @@ appointmentSchema.index(
   }
 );
 
+import { invalidateCachePattern } from "../middlewares/cache.middleware.js";
+
+appointmentSchema.post("save", async function () {
+  try {
+    await Promise.all([
+      invalidateCachePattern("doctor:analytics:*"),
+      invalidateCachePattern("doctor:appointments:*"),
+      invalidateCachePattern("doctor:patients:*"),
+      invalidateCachePattern("doctor:prescriptions:*"),
+      invalidateCachePattern("patient:appointments:*"),
+      invalidateCachePattern("admin:appointments:*"),
+      invalidateCachePattern("admin:dashboard:*"),
+      invalidateCachePattern("admin:slots:*"),
+    ]);
+  } catch (err) {
+    console.error("Failed to invalidate caches on appointment save:", err);
+  }
+});
+
+appointmentSchema.post(/^findOneAnd/, async function () {
+  try {
+    await Promise.all([
+      invalidateCachePattern("doctor:analytics:*"),
+      invalidateCachePattern("doctor:appointments:*"),
+      invalidateCachePattern("doctor:patients:*"),
+      invalidateCachePattern("doctor:prescriptions:*"),
+      invalidateCachePattern("patient:appointments:*"),
+      invalidateCachePattern("admin:appointments:*"),
+      invalidateCachePattern("admin:dashboard:*"),
+      invalidateCachePattern("admin:slots:*"),
+    ]);
+  } catch (err) {
+    console.error("Failed to invalidate caches on appointment update:", err);
+  }
+});
+
 export const Appointment = mongoose.model("Appointment", appointmentSchema);

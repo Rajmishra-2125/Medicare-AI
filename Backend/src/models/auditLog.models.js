@@ -58,13 +58,32 @@ const auditLogSchema = new Schema(
 // Block any updates or deletions to audit logs to ensure immutable HIPAA logs
 auditLogSchema.pre("save", function (next) {
   if (!this.isNew) {
-    return next(new Error("HIPAA Compliance: Audit logs are immutable and cannot be updated."));
+    return next(
+      new Error(
+        "HIPAA Compliance: Audit logs are immutable and cannot be updated."
+      )
+    );
   }
   next();
 });
 
-auditLogSchema.pre(["updateOne", "findByIdAndUpdate", "findOneAndUpdate", "updateMany", "remove", "deleteOne", "deleteMany"], function (next) {
-  next(new Error("HIPAA Compliance: Audit logs are immutable and cannot be modified or deleted."));
-});
+auditLogSchema.pre(
+  [
+    "updateOne",
+    "findByIdAndUpdate",
+    "findOneAndUpdate",
+    "updateMany",
+    "remove",
+    "deleteOne",
+    "deleteMany",
+  ],
+  function (next) {
+    next(
+      new Error(
+        "HIPAA Compliance: Audit logs are immutable and cannot be modified or deleted."
+      )
+    );
+  }
+);
 
 export const AuditLog = mongoose.model("AuditLog", auditLogSchema);
