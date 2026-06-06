@@ -23,12 +23,13 @@ const checkAvailableSlots = async (username, date) => {
 
 // Book an appointment
 const bookAppointment = async (appointmentData) => {
-  const { slotNumber, date, username, reason } = appointmentData;
+  const { slotNumber, date, username, reason, meetingType } = appointmentData;
   const response = await api.post("/appointments/bookslot", {
     slotNumber,
     date,
     username,
     reason,
+    meetingType,
   });
   return response.data.data;
 };
