@@ -157,6 +157,15 @@ function Header({ toggleSidebar }) {
                     </div>
 
                     <Link
+                        to="/doctor/appointments"
+                        className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        onClick={() => setIsDropdownOpen(false)}
+                      >
+                        <ClipboardList className="h-4 w-4" />
+                        My Appointments
+                      </Link>
+
+                    <Link
                       to="/doctor/profile"
                       className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                       onClick={() => setIsDropdownOpen(false)}
