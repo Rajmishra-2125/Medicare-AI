@@ -6,6 +6,7 @@ import {
   Settings,
   LogOut,
   ChevronDown,
+  ClipboardList,
 } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
 import { logout, reset } from "../../../../../features/auth/AuthSlice";
