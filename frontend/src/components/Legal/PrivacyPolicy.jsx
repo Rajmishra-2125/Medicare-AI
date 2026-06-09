@@ -138,7 +138,7 @@ const PrivacyPolicy = () => {
                   <strong className="text-gray-800 dark:text-gray-100">
                     Payment Information:
                   </strong>{" "}
-                  Appointment payment details processed via Razorpay (we do not
+                  Appointment payment details processed via Cashfree (we do not
                   store raw card data).
                 </li>
                 <li>

@@ -212,7 +212,7 @@ const TermsOfService = () => {
                     Payments
                   </p>
                   <p>
-                    All payments are processed securely through Razorpay.
+                    All payments are processed securely through Cashfree.
                     Medicare does not store your raw payment card information.
                     Applicable taxes may be added at checkout.
                   </p>

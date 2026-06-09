@@ -1050,14 +1050,14 @@ Events:
 
 **Options:**
 - Stripe
-- Razorpay (India)
+- Cashfree (India)
 - PayPal
 
 **Payment Controller:**
 ```javascript
 // src/controllers/paymentController.js
 - createPaymentIntent({ appointmentId, amount })
-  → Create Stripe/Razorpay order
+  → Create Stripe/Cashfree order
   → Return client_secret
   
 - confirmPayment({ paymentIntentId, appointmentId })
@@ -1133,7 +1133,7 @@ npm install @stripe/stripe-js @stripe/react-stripe-js
 ### Security Measures
 
 - Never store card details
-- Use Stripe/Razorpay tokens
+- Use Stripe/Cashfree tokens/session IDs
 - Verify webhook signatures
 - Use HTTPS only
 - Implement 3D Secure
