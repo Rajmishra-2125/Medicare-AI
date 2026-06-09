@@ -139,6 +139,72 @@ const getAppointmentDetailsBySlotId = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, appointment, "Appointment details fetched"));
 });
 
+// Helper to parse "HH:MM AM/PM" to minutes from midnight for chronological sorting
+const parseTimeToMinutes = (timeStr) => {
+  try {
+    if (!timeStr) return 0;
+    const parts = timeStr.trim().split(/\s+/);
+    if (parts.length < 2) return 0;
+    const time = parts[0];
+    const modifier = parts[1].toUpperCase();
+    let [hours, minutes] = time.split(":").map(Number);
+    if (isNaN(hours) || isNaN(minutes)) return 0;
+
+    if (modifier === "PM" && hours !== 12) hours += 12;
+    if (modifier === "AM" && hours === 12) hours = 0;
+
+    return hours * 60 + minutes;
+  } catch (error) {
+    console.error("Time Parse Error inside parseTimeToMinutes:", error);
+    return 0;
+  }
+};
+
+// Helper to parse "HH:MM AM/PM" to hours and minutes
+const parseTimeToHoursMinutes = (timeStr) => {
+  if (!timeStr) return { hours: 0, minutes: 0 };
+  const parts = timeStr.trim().split(/\s+/);
+  if (parts.length < 2) return { hours: 0, minutes: 0 };
+  const time = parts[0];
+  const modifier = parts[1].toUpperCase();
+  let [hours, minutes] = time.split(":").map(Number);
+  if (isNaN(hours) || isNaN(minutes)) return { hours: 0, minutes: 0 };
+
+  if (modifier === "PM" && hours !== 12) hours += 12;
+  if (modifier === "AM" && hours === 12) hours = 0;
+
+  return { hours, minutes };
+};
+
+// Helper to filter out past slots for today and sort them chronologically
+const filterAndSortSlots = (slots) => {
+  const now = new Date();
+  return [...slots]
+    .filter((s) => {
+      const dObj = new Date(s.date);
+      const year = dObj.getUTCFullYear();
+      const month = dObj.getUTCMonth(); // 0-indexed
+      const date = dObj.getUTCDate();
+
+      const { hours, minutes } = parseTimeToHoursMinutes(s.startTime);
+      const pad = (num) => String(num).padStart(2, "0");
+      const isoString = `${year}-${pad(month + 1)}-${pad(date)}T${pad(hours)}:${pad(minutes)}:00+05:30`;
+      const slotDateTime = new Date(isoString);
+
+      // Return true only if slot time is in the future (with 10 minutes buffer)
+      return slotDateTime.getTime() > now.getTime() + 10 * 60 * 1000;
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      if (dateA !== dateB) return dateA - dateB;
+
+      const timeA = parseTimeToMinutes(a.startTime);
+      const timeB = parseTimeToMinutes(b.startTime);
+      return timeA - timeB;
+    });
+};
+
 // Get available slots for a doctor on a specific date
 const getAvailableSlots = asyncHandler(async (req, res) => {
   const { username, date } = req.body;
@@ -184,7 +250,11 @@ const getAvailableSlots = asyncHandler(async (req, res) => {
     try {
       const cached = await redisClient.get(cacheKey);
       if (cached) {
-        return res.status(200).json(JSON.parse(cached));
+        const cachedResult = JSON.parse(cached);
+        if (cachedResult && Array.isArray(cachedResult.data)) {
+          cachedResult.data = filterAndSortSlots(cachedResult.data);
+        }
+        return res.status(200).json(cachedResult);
       }
     } catch (err) {
       console.warn("⚠️ Slot cache get error:", err);
@@ -206,10 +276,16 @@ const getAvailableSlots = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Slot is not available today");
   }
 
-  const responsePayload = new ApiResponse(200, slots, "Slot is available");
+  const filteredSlots = filterAndSortSlots(slots);
+
+  const responsePayload = new ApiResponse(
+    200,
+    filteredSlots,
+    "Slot is available"
+  );
 
   // Save to Redis Cache
-  if (redisClient && redisClient.isOpen && slots.length > 0) {
+  if (redisClient && redisClient.isOpen && filteredSlots.length > 0) {
     try {
       await redisClient.setEx(cacheKey, 300, JSON.stringify(responsePayload)); // Cache for 5 minutes
     } catch (err) {
@@ -310,6 +386,30 @@ const applyForBooking = asyncHandler(async (req, res) => {
     },
     { new: true }
   );
+
+  if (bookedSlot) {
+    const dObj = new Date(bookedSlot.date);
+    const year = dObj.getUTCFullYear();
+    const month = dObj.getUTCMonth();
+    const dateVal = dObj.getUTCDate();
+    const { hours, minutes } = parseTimeToHoursMinutes(bookedSlot.startTime);
+    const pad = (num) => String(num).padStart(2, "0");
+    const isoString = `${year}-${pad(month + 1)}-${pad(dateVal)}T${pad(hours)}:${pad(minutes)}:00+05:30`;
+    const slotDateTime = new Date(isoString);
+    const now = new Date();
+
+    if (slotDateTime.getTime() <= now.getTime() + 10 * 60 * 1000) {
+      // Rollback bookedSlot
+      await Slot.findByIdAndUpdate(bookedSlot._id, {
+        status: "AVAILABLE",
+        bookedBy: null,
+      });
+      throw new ApiError(
+        400,
+        "This slot's time has already passed. Please select a future slot."
+      );
+    }
+  }
 
   // --- ROOT CAUSE ANALYSIS IF FAILED ---
   if (!bookedSlot) {
@@ -782,6 +882,23 @@ const rescheduleAppointment = asyncHandler(async (req, res) => {
 
   if (!newSlot) {
     throw new ApiError(404, "New slot is not available");
+  }
+
+  const dObj = new Date(newSlot.date);
+  const year = dObj.getUTCFullYear();
+  const month = dObj.getUTCMonth();
+  const dateVal = dObj.getUTCDate();
+  const { hours, minutes } = parseTimeToHoursMinutes(newSlot.startTime);
+  const pad = (num) => String(num).padStart(2, "0");
+  const isoString = `${year}-${pad(month + 1)}-${pad(dateVal)}T${pad(hours)}:${pad(minutes)}:00+05:30`;
+  const slotDateTime = new Date(isoString);
+  const now = new Date();
+
+  if (slotDateTime.getTime() <= now.getTime() + 10 * 60 * 1000) {
+    throw new ApiError(
+      400,
+      "Cannot reschedule to a slot that has already passed."
+    );
   }
 
   // 3. Free up old slot
