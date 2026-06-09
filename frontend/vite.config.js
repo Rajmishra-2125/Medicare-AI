@@ -23,6 +23,7 @@ export default defineConfig({
   },
   build: {
     outDir: "build",
+    chunkSizeWarningLimit: 1200,
     rollupOptions: {
       output: {
         manualChunks(id) {
@@ -34,31 +35,21 @@ export default defineConfig({
             ) {
               return 'framework';
             }
-            if (
-              id.includes('node_modules/@sentry/') ||
-              id.includes('node_modules/@opentelemetry/')
-            ) {
-              return 'sentry';
+            if (id.includes('node_modules/jspdf/')) {
+              return 'jspdf';
             }
             if (
-              id.includes('node_modules/jspdf') ||
-              id.includes('node_modules/html2canvas') ||
-              id.includes('node_modules/jspdf-autotable')
+              id.includes('node_modules/html2canvas/') ||
+              id.includes('node_modules/jspdf-autotable/')
             ) {
-              return 'pdf';
+              return 'pdf-utils';
             }
             if (
-              id.includes('node_modules/recharts') ||
-              id.includes('node_modules/d3') ||
-              id.includes('node_modules/victory-vendor')
+              id.includes('node_modules/recharts/') ||
+              id.includes('node_modules/d3/') ||
+              id.includes('node_modules/victory-vendor/')
             ) {
               return 'charts';
-            }
-            if (
-              id.includes('node_modules/firebase') ||
-              id.includes('node_modules/@firebase')
-            ) {
-              return 'firebase';
             }
             return 'vendor';
           }
