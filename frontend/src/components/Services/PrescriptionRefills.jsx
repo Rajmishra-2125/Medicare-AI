@@ -48,15 +48,7 @@ function PrescriptionRefills() {
         <div className="absolute inset-0 bg-black opacity-10"></div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.15),transparent_40%)]"></div>
         
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Link
-            to="/services"
-            className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-md px-4 py-2 rounded-lg text-sm font-semibold mb-6 transition-all border border-white/10"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Services
-          </Link>
-          
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">          
           <div className="grid lg:grid-cols-3 gap-8 items-center">
             <div className="lg:col-span-2">
               <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider mb-4 border border-white/10">
