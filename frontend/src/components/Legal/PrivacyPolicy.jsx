@@ -301,7 +301,7 @@ const PrivacyPolicy = () => {
                     desc: "Cloud storage for medical documents and profile images (HTTPS only).",
                   },
                   {
-                    name: "Razorpay",
+                    name: "CashFree",
                     desc: "Payment gateway for processing appointment fees. We never store raw card details.",
                   },
                   {
