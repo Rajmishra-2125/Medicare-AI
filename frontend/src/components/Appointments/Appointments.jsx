@@ -842,10 +842,10 @@ function Appointments() {
                       <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-500" />
                     </div>
                     <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                      Appointment Confirmed!
+                      Appointment Booked!
                     </h2>
                     <p className="text-gray-600 dark:text-gray-400 mb-6">
-                      Your appointment has been successfully booked
+                      Complete your purchase to confirm appointment.
                     </p>
 
                     {user?.role === "PATIENT" && (
