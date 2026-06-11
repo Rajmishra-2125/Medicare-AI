@@ -37,13 +37,9 @@ function PaymentPage() {
     const fetchAppointment = async () => {
       try {
         setLoading(true);
-        const res = await appointmentService.getMyAppointments();
-        const list = res?.data || res || [];
-        const found = (Array.isArray(list) ? list : []).find(
-          (a) => a._id === appointmentId
-        );
-        if (found) {
-          setAppointment(found);
+        const data = await appointmentService.getAppointmentById(appointmentId);
+        if (data) {
+          setAppointment(data);
         } else {
           toast.error("Appointment not found.");
           navigate("/patient/appointments", { replace: true });

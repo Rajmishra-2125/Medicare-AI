@@ -950,10 +950,53 @@ const rescheduleAppointment = asyncHandler(async (req, res) => {
     );
 });
 
+// Get appointment details by appointmentId (Mongoose ObjectID)
+const getAppointmentDetailsById = asyncHandler(async (req, res) => {
+  const { appointmentId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(appointmentId)) {
+    throw new ApiError(400, "Invalid Appointment ID");
+  }
+
+  const appointment = await Appointment.findById(appointmentId)
+    .populate({
+      path: "doctorId",
+      select:
+        "doctor specialization qualification experience consultationFee availableDays timeSlots doctorId",
+      populate: {
+        path: "doctorId",
+        select: "profileImage",
+      },
+    })
+    .populate("slotId", "slotNumber date timeSlots status")
+    .lean();
+
+  if (!appointment) {
+    throw new ApiError(404, "Appointment not found");
+  }
+
+  // Authorization check
+  if (req.user.role === "PATIENT") {
+    if (appointment.patientId.toString() !== req.user._id.toString()) {
+      throw new ApiError(403, "You are not authorized to view this appointment");
+    }
+  } else if (req.user.role === "DOCTOR") {
+    const doctorProfile = await Doctor.findOne({ doctorId: req.user._id });
+    if (!doctorProfile || doctorProfile._id.toString() !== appointment.doctorId.toString()) {
+      throw new ApiError(403, "You are not authorized to view this appointment");
+    }
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, appointment, "Appointment details fetched"));
+});
+
 export {
   myAppointments,
   getDoctorAppointments,
   getAppointmentDetailsBySlotId,
+  getAppointmentDetailsById,
   getAvailableSlots,
   applyForBooking,
   cancelBooking,

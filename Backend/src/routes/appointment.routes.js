@@ -6,6 +6,7 @@ import {
   myAppointments,
   getDoctorAppointments,
   getAppointmentDetailsBySlotId,
+  getAppointmentDetailsById,
   updateAppointmentStatus,
   rescheduleAppointment,
 } from "../controllers/appointment.controllers.js";
@@ -100,7 +101,10 @@ router
 router.route("/slot/:slotId").get(verifyJWT, getAppointmentDetailsBySlotId);
 
 // Update specific appointment (By Appointment ID)
-router.route("/:appointmentId").patch(verifyJWT, updateAppointmentStatus);
+router
+  .route("/:appointmentId")
+  .get(verifyJWT, getAppointmentDetailsById)
+  .patch(verifyJWT, updateAppointmentStatus);
 
 // Reschedule
 router

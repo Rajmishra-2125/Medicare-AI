@@ -6,6 +6,12 @@ const getMyAppointments = async () => {
   return response.data.data;
 };
 
+// Get specific appointment by ID
+const getAppointmentById = async (appointmentId) => {
+  const response = await api.get(`/appointments/${appointmentId}`);
+  return response.data.data;
+};
+
 // Get appointment details by slot ID
 const getAppointmentBySlotId = async (slotId) => {
   const response = await api.get(`/appointments/slot/${slotId}`);
@@ -63,6 +69,7 @@ const rescheduleAppointment = async (appointmentId, rescheduleData) => {
 
 const appointmentService = {
   getMyAppointments,
+  getAppointmentById,
   getAppointmentBySlotId,
   checkAvailableSlots,
   bookAppointment,
