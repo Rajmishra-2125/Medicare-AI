@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, Navigate, useLocation } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import toast from "react-hot-toast";
 import Skeleton from "../common/Skeleton";
@@ -35,6 +35,7 @@ import doctorService from "../../services/doctorService";
 
 function Appointments() {
   const location = useLocation();
+  const navigate = useNavigate();
   const selectedDoctor = location.state?.doctor;
   const { user } = useSelector((state) => state.auth);
 
@@ -302,9 +303,10 @@ function Appointments() {
       const response =
         await appointmentService.bookAppointment(appointmentData);
       const bookedAppointment = response?.data || response;
+      const appointmentId = bookedAppointment?.appointmentId || bookedAppointment?._id;
 
       setBookedAppointmentDetails({
-        id: bookedAppointment?.appointmentId || bookedAppointment?._id,
+        id: appointmentId,
         doctorName: doctor.name, // Use doctor name instead of ID
         specialty: doctor.specialty,
         date: formData.appointmentDate,
@@ -318,10 +320,11 @@ function Appointments() {
         status: bookedAppointment?.status || "CONFIRMED",
       });
 
+      toast.success("Appointment booked! Please complete your payment within 15 minutes.");
       setBookingSuccess(true);
     } catch (error) {
       console.error("Booking error:", error);
-      alert(
+      toast.error(
         error.response?.data?.message ||
           "Failed to book appointment. Please try again.",
       );
@@ -841,9 +844,18 @@ function Appointments() {
                     <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
                       Appointment Confirmed!
                     </h2>
-                    <p className="text-gray-600 dark:text-gray-400 mb-8">
+                    <p className="text-gray-600 dark:text-gray-400 mb-6">
                       Your appointment has been successfully booked
                     </p>
+
+                    {user?.role === "PATIENT" && (
+                      <div className="max-w-md mx-auto flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/15 rounded-xl border border-amber-200 dark:border-amber-700/30 mb-8 text-left">
+                        <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                        <p className="text-sm text-amber-800 dark:text-amber-300">
+                          Please complete your payment within <strong>15 minutes</strong> to confirm your slot.
+                        </p>
+                      </div>
+                    )}
 
                     <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6 mb-6">
                       <div className="grid md:grid-cols-2 gap-4 text-left">
@@ -902,6 +914,15 @@ function Appointments() {
                     </div>
 
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                      {user?.role === "PATIENT" && bookedAppointmentDetails?.id && (
+                        <button
+                          onClick={() => navigate(`/patient/payment/${bookedAppointmentDetails.id}`)}
+                          className="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                        >
+                          <CreditCard className="w-5 h-5" />
+                          Proceed to Payment
+                        </button>
+                      )}
                       <button
                         onClick={() => setActiveTab("myAppointments")}
                         className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
