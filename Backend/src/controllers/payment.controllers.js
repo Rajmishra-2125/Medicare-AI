@@ -1,4 +1,5 @@
 import { Cashfree, CFEnvironment } from "cashfree-pg";
+import mongoose from "mongoose";
 import crypto from "crypto";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
@@ -43,8 +44,12 @@ export const createOrder = asyncHandler(async (req, res) => {
     );
   }
 
+  const query = mongoose.Types.ObjectId.isValid(appointmentId)
+    ? { $or: [{ _id: appointmentId }, { appointmentId: appointmentId }] }
+    : { appointmentId: appointmentId };
+
   const appointment =
-    await Appointment.findById(appointmentId).populate("patientId");
+    await Appointment.findOne(query).populate("patientId");
   if (!appointment) {
     throw new ApiError(404, "Appointment not found");
   }
@@ -130,7 +135,11 @@ export const verifyPayment = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Missing required payment breakdown details");
   }
 
-  const appointment = await Appointment.findById(appointmentId)
+  const query = mongoose.Types.ObjectId.isValid(appointmentId)
+    ? { $or: [{ _id: appointmentId }, { appointmentId: appointmentId }] }
+    : { appointmentId: appointmentId };
+
+  const appointment = await Appointment.findOne(query)
     .populate({
       path: "doctorId",
       populate: { path: "doctorId" },

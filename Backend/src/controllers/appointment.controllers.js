@@ -954,11 +954,11 @@ const rescheduleAppointment = asyncHandler(async (req, res) => {
 const getAppointmentDetailsById = asyncHandler(async (req, res) => {
   const { appointmentId } = req.params;
 
-  if (!mongoose.Types.ObjectId.isValid(appointmentId)) {
-    throw new ApiError(400, "Invalid Appointment ID");
-  }
+  const query = mongoose.Types.ObjectId.isValid(appointmentId)
+    ? { $or: [{ _id: appointmentId }, { appointmentId: appointmentId }] }
+    : { appointmentId: appointmentId };
 
-  const appointment = await Appointment.findById(appointmentId)
+  const appointment = await Appointment.findOne(query)
     .populate({
       path: "doctorId",
       select:
