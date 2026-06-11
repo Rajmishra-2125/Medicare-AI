@@ -300,13 +300,13 @@ function Appointments() {
         meetingType: formData.appointmentType === "video" ? "ONLINE" : "IN_PERSON",
       };
 
-      const response =
-        await appointmentService.bookAppointment(appointmentData);
+      const response = await appointmentService.bookAppointment(appointmentData);
       const bookedAppointment = response?.data || response;
       const appointmentId = bookedAppointment?.appointmentId || bookedAppointment?._id;
 
       setBookedAppointmentDetails({
         id: appointmentId,
+        _id: bookedAppointment?._id || bookedAppointment?.id,
         doctorName: doctor.name, // Use doctor name instead of ID
         specialty: doctor.specialty,
         date: formData.appointmentDate,
@@ -914,9 +914,9 @@ function Appointments() {
                     </div>
 
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                      {user?.role === "PATIENT" && bookedAppointmentDetails?.id && (
+                      {user?.role === "PATIENT" && bookedAppointmentDetails?._id && (
                         <button
-                          onClick={() => navigate(`/patient/payment/${bookedAppointmentDetails.id}`)}
+                          onClick={() => navigate(`/patient/payment/${bookedAppointmentDetails._id}`)}
                           className="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
                         >
                           <CreditCard className="w-5 h-5" />
