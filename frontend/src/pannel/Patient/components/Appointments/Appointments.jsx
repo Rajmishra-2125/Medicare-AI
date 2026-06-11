@@ -273,7 +273,7 @@ function Appointments() {
         throw new Error("Appointment creation failed.");
       }
 
-      toast.success("Appointment booked! Redirecting to payment...");
+      toast.success("Appointment booked successfully! Please complete your payment within 15 minutes.");
 
       // Redirect to the dedicated payment page
       navigate(`/patient/payment/${appointmentId}`);
